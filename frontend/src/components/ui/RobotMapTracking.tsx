@@ -1,20 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, Circle } from 'react-leaflet';
-import { Icon, LatLng, DivIcon } from 'leaflet';
+import { LatLng, DivIcon } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Battery, Zap, Navigation, Clock, MapPin, AlertCircle } from 'lucide-react';
-
-// Fix for default marker icons in Leaflet
-import icon from 'leaflet/dist/images/marker-icon.png';
-import iconShadow from 'leaflet/dist/images/marker-shadow.png';
-
-let DefaultIcon = new Icon({
-  iconUrl: icon,
-  shadowUrl: iconShadow,
-  iconSize: [25, 41],
-  iconAnchor: [12, 41]
-});
 
 interface RobotLocation {
   lat: number;

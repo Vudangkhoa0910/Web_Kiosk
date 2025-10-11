@@ -36,7 +36,6 @@ import type {
   PaymentSession,
   // Stats
   GetStatsResponse,
-  DashboardStats,
   // Notifications
   GetNotificationsResponse,
   Notification,

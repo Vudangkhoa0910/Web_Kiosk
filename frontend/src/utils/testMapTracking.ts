@@ -42,7 +42,7 @@ export async function testRobotImage() {
 // Test 3: Check if Socket.IO is connected
 export function testSocketConnection() {
   // This assumes socketMqttService is available globally or through context
-  const isConnected = window.__socketConnected || false;
+  const isConnected = (window as any).__socketConnected || false;
   
   if (isConnected) {
     console.log('✅ Socket.IO connection established');

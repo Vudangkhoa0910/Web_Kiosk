@@ -2,17 +2,23 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '../../utils';
 
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+interface ButtonProps {
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
   size?: 'sm' | 'md' | 'lg';
   children: React.ReactNode;
   className?: string;
+  onClick?: () => void;
+  disabled?: boolean;
+  type?: 'button' | 'submit' | 'reset';
 }
 
 export const Button: React.FC<ButtonProps> = ({
   variant = 'primary',
   size = 'md',
   children,
+  onClick,
+  disabled,
+  type = 'button',
   className,
   ...props
 }) => {
@@ -36,6 +42,9 @@ export const Button: React.FC<ButtonProps> = ({
     <motion.button
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
+      onClick={onClick}
+      disabled={disabled}
+      type={type}
       className={cn(
         baseClasses,
         variants[variant],

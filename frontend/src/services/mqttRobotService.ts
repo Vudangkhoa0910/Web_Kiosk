@@ -119,7 +119,16 @@ class MQTTRobotService extends EventEmitter {
           clientId: MQTT_CONFIG.broker.clientId
         });
 
-        this.client = mqtt.connect(MQTT_CONFIG.broker);
+        const brokerUrl = `${MQTT_CONFIG.broker.protocol}://${MQTT_CONFIG.broker.host}:${MQTT_CONFIG.broker.port}`;
+        this.client = mqtt.connect(brokerUrl, {
+          username: MQTT_CONFIG.broker.username,
+          password: MQTT_CONFIG.broker.password,
+          clientId: MQTT_CONFIG.broker.clientId,
+          keepalive: MQTT_CONFIG.broker.keepalive,
+          clean: MQTT_CONFIG.broker.clean,
+          reconnectPeriod: MQTT_CONFIG.broker.reconnectPeriod,
+          connectTimeout: MQTT_CONFIG.broker.connectTimeout
+        });
 
         this.client.on('connect', () => {
           console.log('✅ MQTT connected successfully');

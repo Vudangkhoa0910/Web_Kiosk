@@ -44,7 +44,7 @@ interface AppState {
   setRobotStatusFilter: (status: Robot['status'] | 'all') => void;
 }
 
-export const useAppStore = create<AppState>((set, get) => ({
+export const useAppStore = create<AppState>((set) => ({
   // Initial Data - empty, will be loaded from API
   robots: [],
   orders: [],

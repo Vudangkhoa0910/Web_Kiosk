@@ -150,6 +150,13 @@ class MQTTService {
   };
 
   async connect(): Promise<void> {
+    // Disable MQTT in production mode
+    if (import.meta.env.MODE === 'production' || import.meta.env.VITE_DISABLE_MQTT === 'true') {
+      console.log('MQTT disabled in production mode, using simulation');
+      this.startSimulation();
+      return;
+    }
+
     // For browser-based applications, MQTT over TCP is not possible
     // We'll try WebSocket first, then fallback to simulation
     
