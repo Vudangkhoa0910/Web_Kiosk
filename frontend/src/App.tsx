@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { Layout } from './components/layout/Layout';
-import HomeSection from './components/sections/HomeSection';
 import OrderFlowSection from './components/sections/OrderFlowSection';
 import { KioskHistorySection } from './components/sections/KioskHistorySection';
 import TrackingSection from './components/sections/TrackingSection';
@@ -23,12 +22,11 @@ const AppContent: React.FC = () => {
 
   // Sync URL with activeSection state
   useEffect(() => {
-    const pathToSection: Record<string, NavigationSection> = {
+    const pathToSection = {
       '/': 'home',
-      '/order': 'order',
       '/tracking': 'tracking',
       '/history': 'history'
-    };
+    } as const;
 
     const section = pathToSection[location.pathname as keyof typeof pathToSection] ?? 'home';
     if (section !== activeSection) {
@@ -64,7 +62,6 @@ const AppContent: React.FC = () => {
 
     const sectionToPath: Record<NavigationSection, string> = {
       home: '/',
-      order: '/order',
       tracking: '/tracking',
       history: '/history'
     };
@@ -84,11 +81,10 @@ const AppContent: React.FC = () => {
         <Route path="/*" element={
           <Layout currentSection={activeSection} onSectionChange={handleSectionChange}>
             <Routes>
-              <Route path="/" element={<HomeSection />} />
-              <Route path="/order" element={<OrderFlowSection />} />
+              <Route path="/" element={<OrderFlowSection />} />
               <Route path="/tracking" element={<TrackingSection onBackToHome={() => navigate('/')} />} />
               <Route path="/history" element={<KioskHistorySection />} />
-              <Route path="*" element={<HomeSection />} />
+              <Route path="*" element={<OrderFlowSection />} />
             </Routes>
           </Layout>
         } />

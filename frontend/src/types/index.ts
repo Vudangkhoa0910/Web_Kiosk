@@ -96,4 +96,4 @@ export interface MQTTMessage {
   }
 }
 
-export type NavigationSection = 'home' | 'order' | 'tracking' | 'history'
+export type NavigationSection = 'home' | 'tracking' | 'history'

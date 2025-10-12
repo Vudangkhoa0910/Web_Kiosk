@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import React, { useMemo, useState, useEffect } from 'react'
+import { motion, AnimatePresence, useMotionValue, animate } from 'framer-motion'
 import {
   ArrowLeft,
   ArrowRight,
@@ -17,7 +17,9 @@ import {
 import { useNavigate } from 'react-router-dom'
 import { useKioskStore } from '../../stores/kioskStore'
 import { useAppStore } from '../../hooks/useAppStore'
+import { useLanguage } from '../../contexts/LanguageContext'
 import { generateVietQR, BANK_INFO } from '../../utils/vietqr'
+import { PathRenderer, JourneyRobot } from './home'
 import '../../styles/tracking.css'
 import '../../styles/tracking.css'
 
@@ -172,21 +174,68 @@ const PRODUCT_ITEMS: ProductItem[] = [
   }
 ]
 
-const RESTAURANT_CATEGORIES = [
-  { id: 'all', label: 'Tất cả' },
-  { id: 'fastfood', label: 'Đồ ăn nhanh' },
-  { id: 'cafe', label: 'Cafe & Đồ uống' },
-  { id: 'asian', label: 'Món Á' }
-]
+
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value)
 
 const steps: FlowStep[] = ['restaurant', 'menu', 'details', 'payment', 'success']
-const stepLabels = ['Chọn quán', 'Chọn món', 'Thông tin giao hàng', 'Thanh toán', 'Hoàn tất đơn hàng']
+
+// Custom hook for continuous robot journey
+const useContinuousJourney = () => {
+  const robotX = useMotionValue('10%')
+  const robotY = useMotionValue('50%')
+  const [direction, setDirection] = useState<'forward' | 'reverse'>('forward')
+
+  // Fixed path points for the journey
+  const pathPoints = [
+    { progress: 0, x: 10, y: 50 },
+    { progress: 1, x: 90, y: 50 }
+  ]
+
+  useEffect(() => {
+    let animationId: any
+
+    const startAnimation = () => {
+      // Animation from left to right (forward)
+      animationId = animate(robotX, '85%', {
+        duration: 8,
+        ease: 'linear',
+        onComplete: () => {
+          setDirection('reverse')
+          // Animation from right to left (reverse)
+          animationId = animate(robotX, '15%', {
+            duration: 8,
+            ease: 'linear',
+            onComplete: () => {
+              setDirection('forward')
+              startAnimation() // Restart the cycle
+            }
+          })
+        }
+      })
+    }
+
+    startAnimation()
+
+    return () => {
+      if (animationId) {
+        animationId.stop()
+      }
+    }
+  }, [robotX])
+
+  return {
+    pathPoints,
+    robotX,
+    robotY,
+    direction
+  }
+}
 
 const OrderFlowSection: React.FC = () => {
   const navigate = useNavigate()
+  const { t } = useLanguage()
   const [category, setCategory] = useState('all')
   const [search, setSearch] = useState('')
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null)
@@ -202,6 +251,39 @@ const OrderFlowSection: React.FC = () => {
 
   const { addToCart, clearCart, createOrder, initiatePayment } = useKioskStore()
   const { setActiveSection } = useAppStore()
+  
+  // Robot journey animation state
+  const [journeyFrame, setJourneyFrame] = useState<0 | 1>(0)
+  
+  // Robot journey animation for continuous movement
+  useEffect(() => {
+    const frameTimer = setInterval(
+      () => setJourneyFrame((prev) => (prev === 0 ? 1 : 0)),
+      900
+    );
+
+    return () => clearInterval(frameTimer);
+  }, []);
+
+  // Continuous robot journey layout (back-and-forth movement)
+  const { pathPoints, robotX, robotY, direction } = useContinuousJourney();
+
+  // Create step labels from translations
+  const stepLabels = [
+    t.orderFlow.steps.selectRestaurant,
+    t.orderFlow.steps.selectItems,
+    t.orderFlow.steps.deliveryInfo,
+    t.orderFlow.steps.payment,
+    t.orderFlow.steps.complete,
+  ];
+
+  // Create categories from translations
+  const restaurantCategories = [
+    { id: 'all', label: t.orderFlow.restaurant.categories.all },
+    { id: 'fastfood', label: t.orderFlow.restaurant.categories.fastfood },
+    { id: 'cafe', label: t.orderFlow.restaurant.categories.cafe },
+    { id: 'asian', label: t.orderFlow.restaurant.categories.asian },
+  ];
 
   const filteredRestaurants = useMemo(() => {
     const keyword = search.toLowerCase().trim()
@@ -393,15 +475,15 @@ const OrderFlowSection: React.FC = () => {
 
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 text-gray-900 pb-24 sm:pb-28 lg:pb-32">
       {/* Compact Header */}
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
+      <header className="bg-gradient-to-r from-white via-gray-50/50 to-white border-b border-gray-200/60 backdrop-blur-sm px-6 py-4 shadow-sm">
         <div className="mx-auto max-w-6xl">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-xl font-semibold flex items-center gap-2 text-gray-900">
                 <ShoppingCart className="w-6 h-6 text-gray-700" />
-                Đặt đơn hàng
+                {t.orderFlow.title}
               </h1>
             </div>
             
@@ -444,13 +526,13 @@ const OrderFlowSection: React.FC = () => {
       </header>
   
       {/* Main Content */}
-      <div className="px-6 py-6">
-        <div className="mx-auto max-w-6xl">
+      <div className="px-4 sm:px-6 lg:px-8 py-6">
+        <div className="mx-auto max-w-7xl">
 
           {/* Header */}
-          <div className="mb-6 text-center">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Chọn quán ăn</h2>
-            <p className="text-gray-600">Chọn quán ăn bạn muốn đặt món để bắt đầu.</p>
+          <div className="mb-8 text-center">
+            <h2 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-gray-800 via-gray-900 to-gray-800 bg-clip-text text-transparent mb-4">{t.orderFlow.restaurant.title}</h2>
+            <p className="text-lg text-gray-600 leading-relaxed max-w-3xl mx-auto">{t.orderFlow.restaurant.subtitle}</p>
           </div>
 
           {/* Search and Category Filters */}
@@ -459,7 +541,7 @@ const OrderFlowSection: React.FC = () => {
             <div className="relative">
               <input
                 type="text"
-                placeholder="Tìm kiếm quán ăn..."
+                placeholder={t.orderFlow.restaurant.searchPlaceholder}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-gray-900 placeholder-gray-500 focus:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-200"
@@ -468,7 +550,7 @@ const OrderFlowSection: React.FC = () => {
 
             {/* Category Filters */}
             <div className="flex flex-wrap gap-2">
-              {RESTAURANT_CATEGORIES.map((cat) => (
+              {restaurantCategories.map((cat) => (
                 <button
                   key={cat.id}
                   onClick={() => setCategory(cat.id)}
@@ -492,8 +574,8 @@ const OrderFlowSection: React.FC = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
               </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Không tìm thấy quán nào</h3>
-              <p className="text-gray-500">Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc.</p>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">{t.orderFlow.restaurant.noResultsTitle}</h3>
+              <p className="text-gray-500">{t.orderFlow.restaurant.noResultsDesc}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
@@ -504,7 +586,7 @@ const OrderFlowSection: React.FC = () => {
                   setSelectedRestaurant(restaurant)
                   setStep('menu')
                 }}
-                className="bg-white rounded-2xl border border-gray-200 text-left transition-all duration-300 hover:shadow-lg hover:-translate-y-2 hover:border-gray-300"
+                className="bg-white rounded-2xl border border-gray-200/80 text-left transition-all duration-300 hover:shadow-xl hover:-translate-y-3 hover:border-gray-300/90 hover:bg-gradient-to-br hover:from-white hover:to-gray-50/30 group"
               >
                 <div className="h-48 w-full overflow-hidden rounded-t-2xl bg-gray-50">
                   <img src={restaurant.image} alt={restaurant.name} className="h-full w-full object-cover transition-transform duration-300 hover:scale-105" />
@@ -530,7 +612,7 @@ const OrderFlowSection: React.FC = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+            className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[55]"
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
@@ -551,7 +633,7 @@ const OrderFlowSection: React.FC = () => {
                   </div>
                   <div>
                     <h2 className="font-semibold text-gray-900">
-                      {selectedItem ? selectedItem.name : selectedRestaurant?.name || 'Chọn món ăn'}
+                      {selectedItem ? selectedItem.name : selectedRestaurant?.name || t.orderFlow.menu.selectItems}
                     </h2>
                     <p className="text-sm font-bold text-gray-900">
                       {selectedItem ? formatCurrency(selectedItem.price) : selectedRestaurant?.location || ''}
@@ -579,8 +661,8 @@ const OrderFlowSection: React.FC = () => {
                 {step === 'restaurant' && (
                   <div className="space-y-6">
                     <div>
-                      <h3 className="text-lg font-semibold mb-2">Chọn quán ăn</h3>
-                      <p className="text-sm text-gray-600">Chọn quán ăn bạn muốn đặt món.</p>
+                      <h3 className="text-lg font-semibold mb-2">{t.orderFlow.restaurant.selectRestaurant}</h3>
+                      <p className="text-sm text-gray-600">{t.orderFlow.restaurant.selectRestaurantDesc}</p>
                     </div>
 
                     <div className="grid grid-cols-1 gap-4">
@@ -622,7 +704,7 @@ const OrderFlowSection: React.FC = () => {
                   <div className="space-y-6">
                     <div>
                       <h3 className="text-lg font-semibold mb-2">
-                        Chọn món từ {selectedRestaurant.name}
+                        {t.orderFlow.menu.title} {selectedRestaurant.name}
                       </h3>
                       <p className="text-sm text-gray-600">Chọn các món ăn bạn muốn đặt.</p>
                     </div>
@@ -630,7 +712,7 @@ const OrderFlowSection: React.FC = () => {
                     {/* Selected Items Cart */}
                     {selectedItems.length > 0 && (
                       <div className="rounded-2xl bg-gray-50 p-4 border border-gray-100">
-                        <h4 className="font-semibold text-gray-800 mb-3">Giỏ hàng của bạn</h4>
+                        <h4 className="font-semibold text-gray-800 mb-3">{t.orderFlow.menu.cart}</h4>
                         <div className="space-y-2 mb-4">
                           {selectedItems.map((item) => (
                             <div key={item.id} className="flex items-center justify-between bg-white p-3 rounded-xl">
@@ -657,7 +739,7 @@ const OrderFlowSection: React.FC = () => {
                           ))}
                         </div>
                         <div className="flex items-center justify-between text-lg font-bold pt-2 border-t border-gray-200">
-                          <span>Tổng cộng:</span>
+                          <span>{t.orderFlow.menu.total}:</span>
                           <span className="text-gray-900">{formatCurrency(getTotalAmount())}</span>
                         </div>
                       </div>
@@ -701,7 +783,7 @@ const OrderFlowSection: React.FC = () => {
                         className="rounded-2xl border border-gray-300 px-6 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 flex items-center gap-2"
                       >
                         <ArrowLeft className="h-4 w-4" />
-                        Quay lại
+                        {t.orderFlow.buttons.back}
                       </button>
                       <button
                         onClick={() => setStep('details')}
@@ -712,7 +794,7 @@ const OrderFlowSection: React.FC = () => {
                             : 'bg-gray-800 text-white hover:bg-gray-900 shadow-md hover:shadow-lg'
                         }`}
                       >
-                        Tiếp theo ({selectedItems.length} món)
+                        {t.orderFlow.buttons.next} ({selectedItems.length} món)
                         <ArrowRight className="h-4 w-4" />
                       </button>
                     </div>
@@ -996,13 +1078,13 @@ const OrderFlowSection: React.FC = () => {
                     </div>
                     
                     <div>
-                      <h3 className="text-2xl font-bold text-gray-800 mb-2">Đặt hàng thành công!</h3>
+                      <h3 className="text-2xl font-bold text-gray-800 mb-2">{t.orderFlow.success.title}</h3>
                       <p className="text-gray-600 mb-4">
-                        Robot sẽ nhận đơn và di chuyển tới kiosk. Bạn có thể theo dõi hành trình ngay bây giờ.
+                        {t.orderFlow.success.subtitle}
                       </p>
                       {orderId && (
                         <div className="bg-gray-50 rounded-2xl p-4 mb-4 border border-gray-100">
-                          <p className="text-sm text-gray-600">Mã đơn hàng</p>
+                          <p className="text-sm text-gray-600">{t.orderFlow.success.orderId}</p>
                           <p className="text-xl font-bold text-gray-900">{orderId}</p>
                         </div>
                       )}
@@ -1033,6 +1115,35 @@ const OrderFlowSection: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
+      
+      {/* Robot Journey Footer */}
+      <footer className={`fixed bottom-0 left-0 lg:left-80 right-0 px-4 pb-4 sm:px-6 sm:pb-6 transition-all duration-300 ${
+        (selectedItem || selectedRestaurant) ? 'z-10 opacity-30' : 'z-50 opacity-100'
+      }`}>
+        <div className="mx-auto w-full max-w-4xl lg:max-w-5xl">
+          <div className="relative h-[4.5rem] sm:h-[5rem] lg:h-[5.5rem] rounded-[1rem] lg:rounded-[1.2rem] border border-gray-200/60 bg-gradient-to-r from-white/85 via-gray-50/90 to-white/85 shadow-[0_16px_40px_rgba(0,0,0,0.08)] backdrop-blur-xl">
+            {/* Enhanced background with subtle gradient */}
+            <div className="absolute inset-0 rounded-[1.2rem] bg-gradient-to-br from-gray-50/20 via-transparent to-gray-100/20"></div>
+            
+            {/* Path renderer with better contrast */}
+            <div className="absolute inset-0">
+              <PathRenderer pathPoints={pathPoints} />
+            </div>
+
+            {/* Robot with enhanced animation */}
+            <JourneyRobot
+              robotX={robotX}
+              robotY={robotY}
+              direction={direction}
+              journeyFrame={journeyFrame}
+            />
+            
+            {/* Corner decorative elements for visual balance */}
+            <div className="absolute top-2 left-3 w-2 h-2 bg-gray-300/40 rounded-full"></div>
+            <div className="absolute top-2 right-3 w-2 h-2 bg-gray-300/40 rounded-full"></div>
+          </div>
+        </div>
+      </footer>
     </div>
   )
 }

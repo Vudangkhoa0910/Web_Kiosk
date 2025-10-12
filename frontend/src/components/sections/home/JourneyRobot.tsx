@@ -27,11 +27,14 @@ export const JourneyRobot: React.FC<JourneyRobotProps> = memo(({
     >
       <motion.div
         animate={{ 
-          y: journeyFrame === 0 ? -1 : 1,
+          y: journeyFrame === 0 ? -2 : 2,
         }}
         transition={{ 
-          duration: 0.4, 
-          ease: 'easeInOut'
+          duration: 0.5, 
+          ease: [0.4, 0.0, 0.2, 1], // Custom smooth easing
+          type: "spring",
+          stiffness: 300,
+          damping: 30
         }}
         className="relative"
       >
@@ -42,12 +45,15 @@ export const JourneyRobot: React.FC<JourneyRobotProps> = memo(({
             transform: 'translateY(72%) scale(0.85)',
           }}
           animate={{
-            opacity: [0.3, 0.2, 0.3]
+            opacity: journeyFrame === 0 ? 0.25 : 0.35,
+            scaleX: journeyFrame === 0 ? 0.9 : 1.1,
           }}
           transition={{
-            duration: 2,
-            repeat: Infinity,
-            ease: "easeInOut"
+            duration: 0.5,
+            ease: [0.4, 0.0, 0.2, 1],
+            type: "spring",
+            stiffness: 200,
+            damping: 25
           }}
         />
         

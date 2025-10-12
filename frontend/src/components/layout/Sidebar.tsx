@@ -4,18 +4,14 @@ import { cn } from '../../utils'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useAuth } from '../../contexts/AuthContext'
 import LanguageToggle from '../ui/LanguageToggle'
-import AuthModal from '../auth/AuthModal'
 import { TutorialModal } from '../ui/TutorialModal'
 import { 
   Home, 
-  UtensilsCrossed, 
   MapPin, 
   History,
   Menu,
   X,
-  User,
   LogOut,
-  Settings,
   HelpCircle
 } from 'lucide-react'
 
@@ -33,14 +29,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onToggle 
 }) => {
   const { t } = useLanguage();
-  const { user, isAuthenticated, logout } = useAuth();
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const { logout } = useAuth();
   const [isTutorialOpen, setIsTutorialOpen] = useState(false);
 
   const navigationItems = [
-    { id: 'home' as NavigationSection, icon: Home, label: t.nav.home, description: t.nav.homeDesc },
-    { id: 'order' as NavigationSection, icon: UtensilsCrossed, label: t.nav.order, description: t.nav.orderDesc },
+    { id: 'home' as NavigationSection, icon: Home, label: 'Home & Order', description: 'Trang chủ và đặt hàng' },
     { id: 'tracking' as NavigationSection, icon: MapPin, label: t.nav.tracking, description: t.nav.trackingDesc },
     { id: 'history' as NavigationSection, icon: History, label: t.nav.history, description: t.nav.historyDesc },
   ];
@@ -153,72 +146,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Footer */}
   <div className="relative p-3 border-t border-gray-200 bg-slate-50">
-          {/* User Section */}
-          {isAuthenticated && user ? (
-            <div className="mb-3 bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200/50 p-3 shadow-md">
-              <div className="flex items-center space-x-2 mb-2">
-                <div className="w-8 h-8 bg-gray-900 rounded-lg flex items-center justify-center text-white font-bold text-xs">
-                  {user.fullName ? user.fullName.split(' ').map(name => name[0]).join('').slice(0, 2).toUpperCase() : 'U'}
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-gray-800">{user.fullName}</p>
-                  <p className="text-xs text-gray-600">{user.role}</p>
-                </div>
+          {/* User Section - Simplified */}
+          <div className="mb-3 bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200/50 p-3 shadow-md">
+            {/* Default User Display */}
+            <div className="flex items-center space-x-2 mb-3">
+              <div className="w-8 h-8 bg-gray-900 rounded-lg flex items-center justify-center text-white font-bold text-xs">
+                AA
               </div>
-              
-              <div className="flex space-x-1">
-                <button
-                  onClick={() => {/* Add profile handler */}}
-                  className="flex-1 flex items-center justify-center px-2 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-200 rounded-lg transition-all duration-200 border border-gray-200"
-                >
-                  <Settings className="h-3 w-3 mr-1" />
-                  Profile
-                </button>
-                <button
-                  onClick={() => logout()}
-                  className="flex-1 flex items-center justify-center px-2 py-1.5 text-xs font-medium text-red-600 hover:text-red-800 hover:bg-red-100 rounded-lg transition-all duration-200 border border-red-200"
-                >
-                  <LogOut className="h-3 w-3 mr-1" />
-                  {t.auth.logout}
-                </button>
+              <div>
+                <p className="text-xs font-semibold text-gray-800">Alpha Asimov User</p>
+                <p className="text-xs text-gray-600">Robot Delivery System</p>
               </div>
             </div>
-          ) : (
-            <div className="mb-3 bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200/50 p-3 shadow-md">
-              {/* Default User Display */}
-              <div className="flex items-center space-x-2 mb-3">
-                <div className="w-8 h-8 bg-gray-900 rounded-lg flex items-center justify-center text-white font-bold text-xs">
-                  AA
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-gray-800">Alpha Asimov Robotics User</p>
-                  <p className="text-xs text-gray-600">Alpha Asimov Robotics</p>
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <button
-                  onClick={() => {
-                    setAuthMode('login');
-                    setIsAuthModalOpen(true);
-                  }}
-                  className="w-full flex items-center justify-center px-3 py-2 text-xs font-semibold text-white bg-gray-900 hover:bg-gray-700 rounded-lg transition-all duration-200 shadow-sm"
-                >
-                  <User className="h-3 w-3 mr-1" />
-                  {t.auth.login}
-                </button>
-                <button
-                  onClick={() => {
-                    setAuthMode('register');
-                    setIsAuthModalOpen(true);
-                  }}
-                  className="w-full flex items-center justify-center px-3 py-2 text-xs font-semibold text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-lg transition-all duration-200 border border-gray-200"
-                >
-                  {t.auth.register}
-                </button>
-              </div>
-            </div>
-          )}
+            
+            {/* Only Logout Button */}
+            <button
+              onClick={() => logout()}
+              className="w-full flex items-center justify-center px-3 py-2 text-xs font-medium text-red-600 hover:text-red-800 hover:bg-red-100 rounded-lg transition-all duration-200 border border-red-200"
+            >
+              <LogOut className="h-3 w-3 mr-1" />
+              {t.auth.logout}
+            </button>
+          </div>
           
           {/* Language Toggle */}
           <div className="mb-3 flex justify-center">
@@ -261,13 +210,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       >
         <Menu className="h-6 w-6 text-gray-700" />
       </button>
-
-      {/* Auth Modal */}
-      <AuthModal
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
-        initialMode={authMode}
-      />
 
       {/* Tutorial Modal */}
       <TutorialModal

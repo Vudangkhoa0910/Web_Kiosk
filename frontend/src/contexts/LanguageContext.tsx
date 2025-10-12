@@ -188,6 +188,94 @@ interface Translations {
     onTheWay: string;
     items: string;
   };
+
+  // Order Flow Section
+  orderFlow: {
+    title: string;
+    subtitle: string;
+    steps: {
+      selectRestaurant: string;
+      selectItems: string;
+      deliveryInfo: string;
+      payment: string;
+      complete: string;
+    };
+    restaurant: {
+      title: string;
+      subtitle: string;
+      selectRestaurant: string;
+      selectRestaurantDesc: string;
+      searchPlaceholder: string;
+      categories: {
+        all: string;
+        fastfood: string;
+        cafe: string;
+        asian: string;
+      };
+      noResultsTitle: string;
+      noResultsDesc: string;
+    };
+    menu: {
+      title: string;
+      subtitle: string;
+      selectItems: string;
+      selectItemsDesc: string;
+      cart: string;
+      total: string;
+      addToCart: string;
+      quantity: string;
+      removeItem: string;
+      noItems: string;
+      noItemsDesc: string;
+    };
+    delivery: {
+      title: string;
+      subtitle: string;
+      customerName: string;
+      customerPhone: string;
+      notes: string;
+      notesPlaceholder: string;
+    };
+    payment: {
+      title: string;
+      subtitle: string;
+      selectMethod: string;
+      qrCode: string;
+      qrCodeDesc: string;
+      momo: string;
+      momoDesc: string;
+      orderSummary: string;
+      deliveryFee: string;
+      free: string;
+      bankInfo: string;
+      bank: string;
+      accountNumber: string;
+      accountName: string;
+      amount: string;
+      momoTitle: string;
+      momoInstructions: string;
+      momoSteps: string;
+      processing: string;
+      waitingConfirmation: string;
+      waitingConfirmationDesc: string;
+      processingPayment: string;
+      processingPaymentDesc: string;
+    };
+    success: {
+      title: string;
+      subtitle: string;
+      orderId: string;
+      trackOrder: string;
+      placeAnother: string;
+    };
+    buttons: {
+      back: string;
+      next: string;
+      placeOrder: string;
+      processing: string;
+      startUsing: string;
+    };
+  };
   
     // Orders Section
   orders: {
@@ -661,6 +749,93 @@ const viTranslations: Translations = {
     items: 'món',
   },
 
+  orderFlow: {
+    title: 'Đặt đơn hàng',
+    subtitle: 'Chọn quán ăn bạn muốn đặt món để bắt đầu hành trình ẩm thực.',
+    steps: {
+      selectRestaurant: 'Chọn quán',
+      selectItems: 'Chọn món',
+      deliveryInfo: 'Thông tin giao hàng',
+      payment: 'Thanh toán',
+      complete: 'Hoàn tất đơn hàng',
+    },
+    restaurant: {
+      title: 'Chọn quán ăn',
+      subtitle: 'Chọn quán ăn bạn muốn đặt món để bắt đầu hành trình ẩm thực.',
+      selectRestaurant: 'Chọn quán ăn',
+      selectRestaurantDesc: 'Chọn quán ăn bạn muốn đặt món.',
+      searchPlaceholder: 'Tìm kiếm quán ăn...',
+      categories: {
+        all: 'Tất cả',
+        fastfood: 'Đồ ăn nhanh',
+        cafe: 'Cafe & Đồ uống',
+        asian: 'Món Á',
+      },
+      noResultsTitle: 'Không tìm thấy quán nào',
+      noResultsDesc: 'Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc.',
+    },
+    menu: {
+      title: 'Chọn món từ',
+      subtitle: 'Chọn các món ăn bạn muốn đặt.',
+      selectItems: 'Chọn món ăn',
+      selectItemsDesc: 'Chọn các món ăn bạn muốn đặt.',
+      cart: 'Giỏ hàng của bạn',
+      total: 'Tổng cộng',
+      addToCart: 'Thêm vào giỏ',
+      quantity: 'Số lượng',
+      removeItem: 'Xóa món',
+      noItems: 'Không có món ăn nào từ quán này.',
+      noItemsDesc: 'Vui lòng chọn quán khác.',
+    },
+    delivery: {
+      title: 'Thông tin giao hàng',
+      subtitle: 'Nhập thông tin liên hệ để chúng tôi giao hàng chính xác.',
+      customerName: 'Tên khách hàng',
+      customerPhone: 'Số điện thoại',
+      notes: 'Ghi chú thêm',
+      notesPlaceholder: 'Ghi chú thêm (không bắt buộc)',
+    },
+    payment: {
+      title: 'Phương thức thanh toán',
+      subtitle: 'Chọn phương thức thanh toán bạn muốn sử dụng.',
+      selectMethod: 'Chọn phương thức thanh toán',
+      qrCode: 'QR Code',
+      qrCodeDesc: 'Quét mã thanh toán',
+      momo: 'Ví MoMo',
+      momoDesc: 'Thanh toán qua ví điện tử',
+      orderSummary: 'Chi tiết đơn hàng',
+      deliveryFee: 'Phí giao hàng',
+      free: 'Miễn phí',
+      bankInfo: 'Thông tin chuyển khoản',
+      bank: 'Ngân hàng',
+      accountNumber: 'Số tài khoản',
+      accountName: 'Chủ tài khoản',
+      amount: 'Số tiền',
+      momoTitle: 'Thanh toán MoMo',
+      momoInstructions: 'Bấm "Mở ứng dụng MoMo" để tiếp tục thanh toán',
+      momoSteps: '• Mở ứng dụng MoMo trên điện thoại\n• Xác nhận thông tin thanh toán\n• Hoàn tất giao dịch',
+      processing: 'Đang xử lý...',
+      waitingConfirmation: 'Đang chờ xác nhận thanh toán',
+      waitingConfirmationDesc: 'Vui lòng chờ admin xác nhận đã nhận được tiền...',
+      processingPayment: 'Đang xử lý thanh toán',
+      processingPaymentDesc: 'Đang xử lý giao dịch MoMo của bạn...',
+    },
+    success: {
+      title: 'Đặt hàng thành công!',
+      subtitle: 'Robot sẽ nhận đơn và di chuyển tới kiosk. Bạn có thể theo dõi hành trình ngay bây giờ.',
+      orderId: 'Mã đơn hàng',
+      trackOrder: 'Theo dõi đơn hàng',
+      placeAnother: 'Đặt thêm sản phẩm khác',
+    },
+    buttons: {
+      back: 'Quay lại',
+      next: 'Tiếp theo',
+      placeOrder: 'Đặt hàng ngay',
+      processing: 'Đang xử lý...',
+      startUsing: 'Bắt đầu sử dụng',
+    },
+  },
+
   orders: {
     title: 'Đặt Hàng',
     subtitle: 'Chọn cửa hàng và đặt hàng với robot delivery',
@@ -1124,6 +1299,93 @@ const enTranslations: Translations = {
     deliveryProgress: 'Delivery Progress',
     onTheWay: 'is on the way',
     items: 'items',
+  },
+
+  orderFlow: {
+    title: 'Place Order',
+    subtitle: 'Choose a restaurant to start your culinary journey.',
+    steps: {
+      selectRestaurant: 'Select Restaurant',
+      selectItems: 'Select Items',
+      deliveryInfo: 'Delivery Info',
+      payment: 'Payment',
+      complete: 'Complete Order',
+    },
+    restaurant: {
+      title: 'Select Restaurant',
+      subtitle: 'Choose a restaurant to start your culinary journey.',
+      selectRestaurant: 'Select Restaurant',
+      selectRestaurantDesc: 'Choose the restaurant you want to order from.',
+      searchPlaceholder: 'Search restaurants...',
+      categories: {
+        all: 'All',
+        fastfood: 'Fast Food',
+        cafe: 'Cafe & Drinks',
+        asian: 'Asian Food',
+      },
+      noResultsTitle: 'No restaurants found',
+      noResultsDesc: 'Try changing your search keywords or filters.',
+    },
+    menu: {
+      title: 'Select items from',
+      subtitle: 'Choose the items you want to order.',
+      selectItems: 'Select Items',
+      selectItemsDesc: 'Choose the items you want to order.',
+      cart: 'Your Cart',
+      total: 'Total',
+      addToCart: 'Add to Cart',
+      quantity: 'Quantity',
+      removeItem: 'Remove Item',
+      noItems: 'No items available from this restaurant.',
+      noItemsDesc: 'Please choose another restaurant.',
+    },
+    delivery: {
+      title: 'Delivery Information',
+      subtitle: 'Enter your contact information for accurate delivery.',
+      customerName: 'Customer Name',
+      customerPhone: 'Phone Number',
+      notes: 'Additional Notes',
+      notesPlaceholder: 'Additional notes (optional)',
+    },
+    payment: {
+      title: 'Payment Method',
+      subtitle: 'Choose your preferred payment method.',
+      selectMethod: 'Choose payment method',
+      qrCode: 'QR Code',
+      qrCodeDesc: 'Scan to pay',
+      momo: 'MoMo Wallet',
+      momoDesc: 'Pay via e-wallet',
+      orderSummary: 'Order Summary',
+      deliveryFee: 'Delivery Fee',
+      free: 'Free',
+      bankInfo: 'Bank Transfer Information',
+      bank: 'Bank',
+      accountNumber: 'Account Number',
+      accountName: 'Account Name',
+      amount: 'Amount',
+      momoTitle: 'MoMo Payment',
+      momoInstructions: 'Click "Open MoMo App" to continue payment',
+      momoSteps: '• Open MoMo app on your phone\n• Confirm payment information\n• Complete transaction',
+      processing: 'Processing...',
+      waitingConfirmation: 'Waiting for payment confirmation',
+      waitingConfirmationDesc: 'Please wait for admin to confirm payment received...',
+      processingPayment: 'Processing payment',
+      processingPaymentDesc: 'Processing your MoMo transaction...',
+    },
+    success: {
+      title: 'Order placed successfully!',
+      subtitle: 'The robot will pick up your order and head to the kiosk. You can track the journey now.',
+      orderId: 'Order ID',
+      trackOrder: 'Track Order',
+      placeAnother: 'Place Another Order',
+    },
+    buttons: {
+      back: 'Back',
+      next: 'Next',
+      placeOrder: 'Place Order',
+      processing: 'Processing...',
+      startUsing: 'Start Using',
+    },
   },
 
   orders: {

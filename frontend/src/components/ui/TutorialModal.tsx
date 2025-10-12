@@ -33,35 +33,35 @@ const tutorialSlides: TutorialSlide[] = [
     title: 'Chào mừng đến với Alpha Asimov',
     content: 'Hệ thống đặt hàng và giao hàng bằng robot thông minh. Chúng tôi sẽ hướng dẫn bạn cách sử dụng dễ dàng trong vài bước đơn giản.',
     icon: Play,
-    color: 'from-blue-500 to-cyan-500'
+    color: 'from-gray-800 to-gray-900'
   },
   {
     id: 2,
     title: 'Bước 1: Chọn món ăn',
     content: 'Nhấn vào "Menu đặt hàng" để xem danh sách các món ăn có sẵn. Chọn món bạn muốn và thêm vào giỏ hàng.',
     icon: ShoppingCart,
-    color: 'from-green-500 to-emerald-500'
+    color: 'from-gray-700 to-gray-800'
   },
   {
     id: 3,
     title: 'Bước 2: Thanh toán',
     content: 'Kiểm tra giỏ hàng, nhập thông tin giao hàng và chọn phương thức thanh toán (QR Code, MoMo, hoặc thẻ ngân hàng).',
     icon: CreditCard,
-    color: 'from-purple-500 to-pink-500'
+    color: 'from-gray-600 to-gray-700'
   },
   {
     id: 4,
     title: 'Bước 3: Theo dõi robot',
     content: 'Sau khi thanh toán, bạn có thể theo dõi robot giao hàng trực tiếp trên bản đồ và xem thời gian dự kiến.',
     icon: MapPin,
-    color: 'from-orange-500 to-red-500'
+    color: 'from-gray-500 to-gray-600'
   },
   {
     id: 5,
     title: 'Hoàn thành!',
     content: 'Robot sẽ giao hàng đến vị trí bạn chỉ định. Cảm ơn bạn đã sử dụng dịch vụ Alpha Asimov!',
     icon: CheckCircle,
-    color: 'from-teal-500 to-blue-500'
+    color: 'from-gray-800 to-black'
   }
 ]
 
@@ -146,7 +146,7 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({ isOpen, onClose })
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+        className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
         onClick={onClose}
       >
         <motion.div
@@ -200,7 +200,7 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({ isOpen, onClose })
           {isAutoPlaying && (
             <div className="h-1 bg-gray-200">
               <motion.div
-                className="h-full bg-gradient-to-r from-blue-500 to-cyan-500"
+                className="h-full bg-gradient-to-r from-gray-700 to-gray-800"
                 initial={{ width: 0 }}
                 animate={{ width: `${progress}%` }}
                 transition={{ duration: 0.1, ease: 'linear' }}
@@ -257,7 +257,7 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({ isOpen, onClose })
                   onClick={() => goToSlide(index)}
                   className={`w-3 h-3 rounded-full transition-all duration-200 ${
                     index === currentSlide
-                      ? 'bg-blue-500 scale-125'
+                      ? 'bg-gray-800 scale-125'
                       : 'bg-gray-300 hover:bg-gray-400'
                   }`}
                 />
@@ -280,7 +280,7 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({ isOpen, onClose })
             {currentSlide === tutorialSlides.length - 1 ? (
               <button
                 onClick={onClose}
-                className="w-full py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-cyan-600 transition-all duration-200"
+                className="w-full py-3 bg-gradient-to-r from-gray-800 to-black text-white font-semibold rounded-xl hover:from-gray-700 hover:to-gray-800 transition-all duration-200"
               >
                 Bắt đầu sử dụng
               </button>
