@@ -388,7 +388,7 @@ const TrackingSection: React.FC<TrackingSectionProps> = () => {
               <DeliveryStageItem
                 icon={<Package className="w-4 h-4" />}
                 title="Đang chuẩn bị đơn hàng"
-                description="Nhà hàng chuẩn bị món"
+                description="Đơn hàng đang được chuẩn bị"
                 isCompleted={['robot_assigned', 'picking_up', 'at_pickup', 'picked_up', 'delivering', 'at_delivery', 'delivered'].includes(currentStage)}
                 isActive={currentStage === 'preparing'}
               />

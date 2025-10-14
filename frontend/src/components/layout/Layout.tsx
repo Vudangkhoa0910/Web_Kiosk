@@ -16,8 +16,8 @@ export const Layout: React.FC<LayoutProps> = ({
       {/* Animated Background - only for home section */}
       {currentSection === 'home' && <AnimatedBackground />}
       
-      {/* Brand Logo - Top Left */}
-      <BrandLogo />
+      {/* Brand Logo - Top Left - Hide on tracking section */}
+      {currentSection !== 'tracking' && <BrandLogo />}
       
       {/* Top Right Controls - Language Switcher & Auth Button - Hide on tracking section */}
       {currentSection !== 'tracking' && <TopRightControls />}

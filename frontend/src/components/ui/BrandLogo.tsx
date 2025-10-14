@@ -9,10 +9,9 @@ export const BrandLogo: React.FC = () => {
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.3 }}
       >
-        <div className="bg-white/95 backdrop-blur-lg border border-gray-200/70 rounded-2xl shadow-lg px-4 py-2.5 flex items-center gap-3 hover:shadow-xl hover:border-gray-300/70 transition-all duration-300 group">
+        <div className="bg-white/95 backdrop-blur-lg border border-gray-200/70 rounded-2xl px-4 py-2.5 flex items-center gap-3 hover:border-gray-300/70 transition-all duration-300 group">
           {/* Logo */}
           <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-br from-gray-100/50 to-gray-200/50 rounded-lg blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             <img 
               src="/images/logo.png" 
               alt="Alpha Asimov Robotics" 
