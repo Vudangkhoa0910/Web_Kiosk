@@ -1,44 +1,31 @@
 import React from 'react'
 import type { NavigationSection } from '../../types'
-import { Sidebar } from './Sidebar'
-import { AnimatedBackground } from '../ui'
+import { AnimatedBackground, TopRightControls, BrandLogo } from '../ui'
 
 interface LayoutProps {
   children: React.ReactNode
   currentSection: NavigationSection
-  onSectionChange: (section: NavigationSection) => void
 }
 
 export const Layout: React.FC<LayoutProps> = ({ 
   children, 
-  currentSection, 
-  onSectionChange 
+  currentSection
 }) => {
-  const [sidebarOpen, setSidebarOpen] = React.useState(false)
-
-  const toggleSidebar = () => setSidebarOpen(!sidebarOpen)
-
-  // Close sidebar on section change (mobile)
-  React.useEffect(() => {
-    setSidebarOpen(false)
-  }, [currentSection])
-
   return (
-  <div className="min-h-screen overflow-hidden bg-slate-200">
+    <div className="min-h-screen overflow-hidden bg-white">
       {/* Animated Background - only for home section */}
       {currentSection === 'home' && <AnimatedBackground />}
       
-      <Sidebar 
-        currentSection={currentSection}
-        onSectionChange={onSectionChange}
-        isOpen={sidebarOpen}
-        onToggle={toggleSidebar}
-      />
+      {/* Brand Logo - Top Left */}
+      <BrandLogo />
       
-      {/* Main Content */}
-  <main className="lg:ml-80 min-h-screen relative bg-slate-100">
-        {/* HomeSection gets full-bleed (no padding), other sections keep padding */}
-        {currentSection === 'home' ? (
+      {/* Top Right Controls - Language Switcher & Auth Button - Hide on tracking section */}
+      {currentSection !== 'tracking' && <TopRightControls />}
+      
+      {/* Main Content - Full width without sidebar */}
+      <main className="min-h-screen relative bg-white">
+        {/* HomeSection and TrackingSection get full-bleed (no padding), other sections keep padding */}
+        {currentSection === 'home' || currentSection === 'tracking' ? (
           <div className="h-screen overflow-hidden">
             {children}
           </div>

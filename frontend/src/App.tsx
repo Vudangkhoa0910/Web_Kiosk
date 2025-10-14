@@ -10,9 +10,8 @@ import AuthLandingPage from './pages/AuthLandingPage';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
-import { socketMqttService } from './services/socketMqttService';
+import { socketMqttService } from './services';
 import { useAppStore } from './hooks/useAppStore';
-import type { NavigationSection } from './types';
 
 // Main App Content with URL Routing
 const AppContent: React.FC = () => {
@@ -33,6 +32,30 @@ const AppContent: React.FC = () => {
       setActiveSection(section);
     }
   }, [location.pathname, activeSection, setActiveSection]);
+
+  // Check for active order and redirect to tracking
+  useEffect(() => {
+    const checkActiveOrder = async () => {
+      try {
+        // Import the kiosk store dynamically
+        const { useKioskStore } = await import('./stores/kioskStore');
+        const currentOrder = useKioskStore.getState().currentOrder;
+        
+        // If there's an active order and we're on home page, redirect to tracking
+        if (currentOrder && 
+            currentOrder.status !== 'delivered' && 
+            currentOrder.status !== 'cancelled' &&
+            location.pathname === '/') {
+          setActiveSection('tracking');
+          navigate('/tracking');
+        }
+      } catch (error) {
+        console.error('Error checking active order:', error);
+      }
+    };
+
+    checkActiveOrder();
+  }, [location.pathname, navigate, setActiveSection]);
 
   // Initialize Socket.IO MQTT connection
   useEffect(() => {
@@ -57,18 +80,6 @@ const AppContent: React.FC = () => {
     };
   }, []);
 
-  const handleSectionChange = (section: NavigationSection) => {
-    setActiveSection(section);
-
-    const sectionToPath: Record<NavigationSection, string> = {
-      home: '/',
-      tracking: '/tracking',
-      history: '/history'
-    };
-
-    navigate(sectionToPath[section]);
-  };
-
   return (
     <>
       <Routes>
@@ -79,7 +90,7 @@ const AppContent: React.FC = () => {
         
         {/* Main App Routes - with Layout */}
         <Route path="/*" element={
-          <Layout currentSection={activeSection} onSectionChange={handleSectionChange}>
+          <Layout currentSection={activeSection}>
             <Routes>
               <Route path="/" element={<OrderFlowSection />} />
               <Route path="/tracking" element={<TrackingSection onBackToHome={() => navigate('/')} />} />

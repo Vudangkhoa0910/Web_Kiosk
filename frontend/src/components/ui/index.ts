@@ -10,3 +10,6 @@ export { BubbleCard, BubbleGrid } from './BubbleCard';
 export { RobotTrackingMap } from './RobotTrackingMap';
 export { MapComponent } from './MapComponent';
 export { RobotMapTracking } from './RobotMapTracking';
+export { LanguageSwitcher } from './LanguageSwitcher';
+export { TopRightControls } from './TopRightControls';
+export { BrandLogo } from './BrandLogo';

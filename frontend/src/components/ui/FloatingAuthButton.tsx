@@ -1,123 +1,110 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { LogIn, UserPlus, User, LogOut, X } from 'lucide-react';
+import { LogIn, UserPlus, LogOut, X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { motion } from 'framer-motion';
 
-const FloatingAuthButton: React.FC = () => {
+interface FloatingAuthButtonProps {
+  className?: string;
+}
+
+const FloatingAuthButton: React.FC<FloatingAuthButtonProps> = ({ className = '' }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const { user, isAuthenticated, logout } = useAuth();
 
   if (isAuthenticated && user) {
-    // Hiển thị thông tin user khi đã đăng nhập
+    // Compact logout button - icon only circle
     return (
-      <div className="fixed bottom-6 right-6 z-50">
-        {isExpanded && (
-          <>
-            {/* Backdrop */}
-            <div 
-              className="fixed inset-0 bg-black/20 backdrop-blur-sm"
-              onClick={() => setIsExpanded(false)}
-            />
-            
-            {/* User Info */}
-            <div className="relative mb-4">
-              <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-4 min-w-[200px]">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                    <User className="w-5 h-5 text-gray-600" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900">{user.name}</p>
-                    <p className="text-xs text-gray-500">{user.email}</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => {
-                    logout();
-                    setIsExpanded(false);
-                  }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                >
-                  <LogOut className="w-4 h-4" />
-                  Đăng xuất
-                </button>
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* Main Button */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className={className}
+      >
         <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className={`w-14 h-14 rounded-full shadow-lg transition-all duration-200 flex items-center justify-center ${
-            isExpanded 
-              ? 'bg-gray-100 text-gray-600 hover:bg-gray-200' 
-              : 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-200'
-          }`}
+          onClick={logout}
+          title="Đăng xuất"
+          className="w-10 h-10 bg-white/95 backdrop-blur-lg border border-red-200/70 rounded-full shadow-lg hover:shadow-xl hover:border-red-300 hover:bg-red-50 transition-all duration-300 flex items-center justify-center group"
         >
-          {isExpanded ? (
-            <X className="w-5 h-5" />
-          ) : (
-            <User className="w-5 h-5" />
-          )}
+          <LogOut className="w-4 h-4 text-red-600 group-hover:scale-110 transition-transform duration-200" />
         </button>
-      </div>
+      </motion.div>
     );
   }
 
-  // Hiển thị options đăng nhập/đăng ký khi chưa đăng nhập
+  // Compact non-logged-in view with expandable menu
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    <div className={`relative ${className}`}>
       {isExpanded && (
         <>
           {/* Backdrop */}
           <div 
-            className="fixed inset-0 bg-black/20 backdrop-blur-sm"
+            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
             onClick={() => setIsExpanded(false)}
           />
           
-          {/* Auth Options */}
-          <div className="relative mb-4 space-y-2">
-            <Link
-              to="/login"
-              className="flex items-center gap-3 bg-white hover:bg-gray-50 px-4 py-3 rounded-xl shadow-lg border border-gray-200 transition-all duration-200 min-w-[180px]"
-              onClick={() => setIsExpanded(false)}
+          {/* Compact Auth Options */}
+          <div className="absolute top-full right-0 mt-2 space-y-2 z-50">
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2 }}
             >
-              <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
-                <LogIn className="w-4 h-4 text-gray-600" />
-              </div>
-              <span className="text-sm font-medium text-gray-700">Đăng nhập</span>
-            </Link>
+              <Link
+                to="/login"
+                className="flex items-center gap-2 bg-white/95 backdrop-blur-lg hover:bg-gray-50 px-4 py-2 rounded-full shadow-lg border border-gray-200/70 hover:border-gray-300 transition-all duration-200 min-w-[140px]"
+                onClick={() => setIsExpanded(false)}
+              >
+                <LogIn className="w-4 h-4 text-gray-700" />
+                <span className="text-sm font-bold text-gray-700">Đăng nhập</span>
+              </Link>
+            </motion.div>
             
-            <Link
-              to="/register"
-              className="flex items-center gap-3 bg-white hover:bg-gray-50 px-4 py-3 rounded-xl shadow-lg border border-gray-200 transition-all duration-200 min-w-[180px]"
-              onClick={() => setIsExpanded(false)}
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2, delay: 0.05 }}
             >
-              <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
-                <UserPlus className="w-4 h-4 text-gray-600" />
-              </div>
-              <span className="text-sm font-medium text-gray-700">Đăng ký</span>
-            </Link>
+              <Link
+                to="/register"
+                className="flex items-center gap-2 bg-white/95 backdrop-blur-lg hover:bg-gray-50 px-4 py-2 rounded-full shadow-lg border border-gray-200/70 hover:border-gray-300 transition-all duration-200 min-w-[140px]"
+                onClick={() => setIsExpanded(false)}
+              >
+                <UserPlus className="w-4 h-4 text-gray-700" />
+                <span className="text-sm font-bold text-gray-700">Đăng ký</span>
+              </Link>
+            </motion.div>
           </div>
         </>
       )}
 
-      {/* Main Button */}
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        className={`w-14 h-14 rounded-full shadow-lg transition-all duration-200 flex items-center justify-center ${
-          isExpanded 
-            ? 'bg-gray-100 text-gray-600 hover:bg-gray-200' 
-            : 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-200'
-        }`}
+      {/* Compact Toggle Button */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
       >
-        {isExpanded ? (
-          <X className="w-5 h-5" />
-        ) : (
-          <User className="w-5 h-5" />
-        )}
-      </button>
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className={`flex items-center gap-2 px-4 py-2 rounded-full shadow-lg transition-all duration-300 ${
+            isExpanded 
+              ? 'bg-gray-100/95 backdrop-blur-lg text-gray-700 hover:bg-gray-200 border border-gray-300' 
+              : 'bg-white/95 backdrop-blur-lg hover:bg-gray-50 text-gray-700 border border-gray-200/70 hover:border-gray-300'
+          }`}
+        >
+          {isExpanded ? (
+            <>
+              <X className="w-4 h-4" />
+              <span className="text-sm font-bold">Đóng</span>
+            </>
+          ) : (
+            <>
+              <LogIn className="w-4 h-4" />
+              <span className="text-sm font-bold">Đăng nhập</span>
+            </>
+          )}
+        </button>
+      </motion.div>
     </div>
   );
 };

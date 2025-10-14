@@ -751,27 +751,27 @@ const viTranslations: Translations = {
 
   orderFlow: {
     title: 'Đặt đơn hàng',
-    subtitle: 'Chọn quán ăn bạn muốn đặt món để bắt đầu hành trình ẩm thực.',
+    subtitle: 'Chọn địa điểm bạn muốn đặt hàng để bắt đầu.',
     steps: {
-      selectRestaurant: 'Chọn quán',
-      selectItems: 'Chọn món',
+      selectRestaurant: 'Chọn địa điểm',
+      selectItems: 'Chọn sản phẩm',
       deliveryInfo: 'Thông tin giao hàng',
       payment: 'Thanh toán',
       complete: 'Hoàn tất đơn hàng',
     },
     restaurant: {
-      title: 'Chọn quán ăn',
-      subtitle: 'Chọn quán ăn bạn muốn đặt món để bắt đầu hành trình ẩm thực.',
-      selectRestaurant: 'Chọn quán ăn',
-      selectRestaurantDesc: 'Chọn quán ăn bạn muốn đặt món.',
-      searchPlaceholder: 'Tìm kiếm quán ăn...',
+      title: 'Chọn địa điểm',
+      subtitle: 'Chọn địa điểm bạn muốn đặt hàng để bắt đầu.',
+      selectRestaurant: 'Chọn địa điểm',
+      selectRestaurantDesc: 'Chọn địa điểm bạn muốn đặt hàng.',
+      searchPlaceholder: 'Tìm kiếm địa điểm...',
       categories: {
         all: 'Tất cả',
         fastfood: 'Đồ ăn nhanh',
         cafe: 'Cafe & Đồ uống',
         asian: 'Món Á',
       },
-      noResultsTitle: 'Không tìm thấy quán nào',
+      noResultsTitle: 'Không tìm thấy địa điểm nào',
       noResultsDesc: 'Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc.',
     },
     menu: {
@@ -1303,27 +1303,27 @@ const enTranslations: Translations = {
 
   orderFlow: {
     title: 'Place Order',
-    subtitle: 'Choose a restaurant to start your culinary journey.',
+    subtitle: 'Choose a location to start ordering.',
     steps: {
-      selectRestaurant: 'Select Restaurant',
+      selectRestaurant: 'Select Location',
       selectItems: 'Select Items',
       deliveryInfo: 'Delivery Info',
       payment: 'Payment',
       complete: 'Complete Order',
     },
     restaurant: {
-      title: 'Select Restaurant',
-      subtitle: 'Choose a restaurant to start your culinary journey.',
-      selectRestaurant: 'Select Restaurant',
-      selectRestaurantDesc: 'Choose the restaurant you want to order from.',
-      searchPlaceholder: 'Search restaurants...',
+      title: 'Select Location',
+      subtitle: 'Choose a location to start ordering.',
+      selectRestaurant: 'Select Location',
+      selectRestaurantDesc: 'Choose the location you want to order from.',
+      searchPlaceholder: 'Search locations...',
       categories: {
         all: 'All',
         fastfood: 'Fast Food',
         cafe: 'Cafe & Drinks',
         asian: 'Asian Food',
       },
-      noResultsTitle: 'No restaurants found',
+      noResultsTitle: 'No locations found',
       noResultsDesc: 'Try changing your search keywords or filters.',
     },
     menu: {

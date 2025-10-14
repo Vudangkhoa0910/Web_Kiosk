@@ -212,7 +212,7 @@ const HomeSection: React.FC = () => {
         </main>
 
         <footer className="relative px-3 pb-3 sm:px-4 sm:pb-4">
-          <div className="mx-auto w-full max-w-5xl">
+          <div className="mx-auto w-full max-w-3xl">
             <div className="relative h-[4.5rem] sm:h-[5rem] rounded-[1rem] border border-white/50 bg-white/72 shadow-[0_12px_28px_rgba(15,23,42,0.12)] backdrop-blur-2xl">
               <div className="absolute inset-0">
                 <PathRenderer pathPoints={pathPoints} />

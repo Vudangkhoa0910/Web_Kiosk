@@ -249,8 +249,13 @@ const OrderFlowSection: React.FC = () => {
   const [orderId, setOrderId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const { addToCart, clearCart, createOrder, initiatePayment } = useKioskStore()
+  const { addToCart, clearCart, createOrder, initiatePayment, currentOrder } = useKioskStore()
   const { setActiveSection } = useAppStore()
+
+  // Check if there's an active order
+  const hasActiveOrder = currentOrder && 
+    currentOrder.status !== 'delivered' && 
+    currentOrder.status !== 'cancelled'
   
   // Robot journey animation state
   const [journeyFrame, setJourneyFrame] = useState<0 | 1>(0)
@@ -264,6 +269,18 @@ const OrderFlowSection: React.FC = () => {
 
     return () => clearInterval(frameTimer);
   }, []);
+
+  // Auto-redirect to tracking after successful payment
+  useEffect(() => {
+    if (step === 'success' && orderId) {
+      const timer = setTimeout(() => {
+        setActiveSection('tracking')
+        navigate('/tracking')
+      }, 2000) // Wait 2 seconds before redirecting
+
+      return () => clearTimeout(timer)
+    }
+  }, [step, orderId, navigate, setActiveSection]);
 
   // Continuous robot journey layout (back-and-forth movement)
   const { pathPoints, robotX, robotY, direction } = useContinuousJourney();
@@ -473,6 +490,89 @@ const OrderFlowSection: React.FC = () => {
   }
 
 
+
+  // If there's an active order, show blocking message
+  if (hasActiveOrder) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 text-gray-900 flex items-center justify-center p-6">
+        <div className="max-w-2xl w-full">
+          {/* Warning Card */}
+          <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-gray-800 to-gray-900 px-8 py-6">
+              <div className="flex items-center justify-center gap-3">
+                <ShoppingCart className="w-8 h-8 text-white" />
+                <h1 className="text-2xl font-bold text-white">Đơn hàng đang hoạt động</h1>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="px-8 py-8 space-y-6">
+              {/* Icon and Message */}
+              <div className="text-center space-y-4">
+                <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto">
+                  <FileText className="w-10 h-10 text-gray-700" />
+                </div>
+                
+                <div className="space-y-2">
+                  <h2 className="text-xl font-bold text-gray-900">
+                    Bạn đang có đơn hàng đang được thực hiện
+                  </h2>
+                  <p className="text-gray-600 leading-relaxed">
+                    Vui lòng hoàn tất đơn hàng hiện tại trước khi đặt đơn hàng mới. 
+                    Hệ thống chỉ hỗ trợ xử lý một đơn hàng tại một thời điểm.
+                  </p>
+                </div>
+              </div>
+
+              {/* Order Info */}
+              <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+                <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  Thông tin đơn hàng
+                </h3>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Mã đơn hàng:</span>
+                    <span className="font-semibold text-gray-900">#{currentOrder.id.slice(-8)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Trạng thái:</span>
+                    <span className="font-semibold text-gray-900 capitalize">
+                      {currentOrder.status === 'preparing' && 'Đang chuẩn bị'}
+                      {currentOrder.status === 'ready' && 'Đã sẵn sàng'}
+                      {currentOrder.status === 'delivering' && 'Đang giao hàng'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Tổng tiền:</span>
+                    <span className="font-semibold text-gray-900">{formatCurrency(currentOrder.total)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Button */}
+              <button
+                onClick={() => {
+                  setActiveSection('tracking')
+                  navigate('/tracking')
+                }}
+                className="w-full bg-gradient-to-r from-gray-800 to-gray-900 hover:from-gray-900 hover:to-black text-white rounded-xl px-6 py-4 font-semibold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
+              >
+                <span>Theo dõi đơn hàng</span>
+                <ArrowRight className="w-5 h-5" />
+              </button>
+
+              {/* Info Note */}
+              <div className="text-center text-xs text-gray-500 pt-2">
+                Sau khi nhận được hàng và xác nhận hoàn tất đơn hàng, bạn có thể đặt đơn mới
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 text-gray-900 pb-24 sm:pb-28 lg:pb-32">
@@ -1080,7 +1180,7 @@ const OrderFlowSection: React.FC = () => {
                     <div>
                       <h3 className="text-2xl font-bold text-gray-800 mb-2">{t.orderFlow.success.title}</h3>
                       <p className="text-gray-600 mb-4">
-                        {t.orderFlow.success.subtitle}
+                        Đang chuyển đến theo dõi đơn hàng...
                       </p>
                       {orderId && (
                         <div className="bg-gray-50 rounded-2xl p-4 mb-4 border border-gray-100">
@@ -1088,25 +1188,6 @@ const OrderFlowSection: React.FC = () => {
                           <p className="text-xl font-bold text-gray-900">{orderId}</p>
                         </div>
                       )}
-                    </div>
-                    
-                    <div className="flex flex-col gap-3">
-                      <button
-                        onClick={() => {
-                          resetFlow()
-                          setActiveSection('tracking')
-                          navigate('/tracking')
-                        }}
-                        className="rounded-2xl bg-gray-800 px-6 py-3 text-sm font-medium text-white hover:bg-gray-900 transition-all duration-200 shadow-md hover:shadow-lg"
-                      >
-                        Theo dõi đơn hàng
-                      </button>
-                      <button
-                        onClick={resetFlow}
-                        className="rounded-2xl border border-gray-300 px-6 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all duration-200"
-                      >
-                        Đặt thêm sản phẩm khác
-                      </button>
                     </div>
                   </div>
                 )}
@@ -1117,10 +1198,10 @@ const OrderFlowSection: React.FC = () => {
       </AnimatePresence>
       
       {/* Robot Journey Footer */}
-      <footer className={`fixed bottom-0 left-0 lg:left-80 right-0 px-4 pb-4 sm:px-6 sm:pb-6 transition-all duration-300 ${
+      <footer className={`fixed bottom-0 left-0 right-0 px-4 pb-4 sm:px-6 sm:pb-6 flex items-end justify-center transition-all duration-300 ${
         (selectedItem || selectedRestaurant) ? 'z-10 opacity-30' : 'z-50 opacity-100'
       }`}>
-        <div className="mx-auto w-full max-w-4xl lg:max-w-5xl">
+        <div className="w-full max-w-2xl lg:max-w-3xl xl:max-w-4xl">
           <div className="relative h-[4.5rem] sm:h-[5rem] lg:h-[5.5rem] rounded-[1rem] lg:rounded-[1.2rem] border border-gray-200/60 bg-gradient-to-r from-white/85 via-gray-50/90 to-white/85 shadow-[0_16px_40px_rgba(0,0,0,0.08)] backdrop-blur-xl">
             {/* Enhanced background with subtle gradient */}
             <div className="absolute inset-0 rounded-[1.2rem] bg-gradient-to-br from-gray-50/20 via-transparent to-gray-100/20"></div>
