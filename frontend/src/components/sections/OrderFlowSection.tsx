@@ -944,8 +944,9 @@ const OrderFlowSection: React.FC = () => {
                               src={momoPaymentUrl}
                               className="w-full h-[600px] border-0 bg-white"
                               title="MoMo Payment Gateway"
-                              sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
-                              allow="payment"
+                              sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation allow-top-navigation-by-user-activation"
+                              allow="payment; camera; microphone"
+                              referrerPolicy="no-referrer-when-downgrade"
                             />
                           </div>
                         </div>
