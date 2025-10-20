@@ -21,7 +21,6 @@ import momoPaymentService from '../../services/momoPaymentService'
 import '../../styles/tracking.css'
 
 type FlowStep = 'restaurant' | 'menu' | 'details' | 'payment' | 'success'
-type PaymentMethod = 'momo'
 
 interface ProductItem {
   id: string
@@ -240,13 +239,12 @@ const OrderFlowSection: React.FC = () => {
   const [selectedItem, setSelectedItem] = useState<ProductItem | null>(null)
   const [step, setStep] = useState<FlowStep>('restaurant')
   const [customer, setCustomer] = useState({ name: '', phone: '', note: '' })
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('momo')
   const [isProcessing, setIsProcessing] = useState(false)
   const [orderId, setOrderId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [momoPaymentUrl, setMomoPaymentUrl] = useState<string | null>(null)
 
-  const { addToCart, clearCart, createOrder, initiatePayment, currentOrder } = useKioskStore()
+  const { currentOrder } = useKioskStore()
   const { setActiveSection } = useAppStore()
 
   // Check if there's an active order
@@ -338,7 +336,6 @@ const OrderFlowSection: React.FC = () => {
     setSelectedItem(null)
     setStep('restaurant')
     setCustomer({ name: '', phone: '', note: '' })
-    setPaymentMethod('momo')
     setOrderId(null)
     setError(null)
     setMomoPaymentUrl(null)
