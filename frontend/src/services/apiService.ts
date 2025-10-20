@@ -432,6 +432,8 @@ export const robotsAPI = {
   },
 };
 
+// (MoMo test endpoints merged into main paymentAPI below)
+
 // ============================================
 // TRACKING API
 // ============================================
@@ -490,6 +492,22 @@ export const paymentAPI = {
    */
   cancel: async (paymentId: string): Promise<APIResponse<PaymentSession>> => {
     return httpClient.post<APIResponse<PaymentSession>>(`/payments/${paymentId}/cancel`);
+  },
+
+  // --- MoMo test endpoints (personal / merchant) ---
+  /**
+   * Create a personal MoMo payment using the test server
+   * Returns { success, data: { orderId, amount, qrCodeDataURL, momoLink, phoneNumber } }
+   */
+  createPersonal: async (payload: { amount: number; orderInfo?: string; items?: any[] }) => {
+    return httpClient.post<any>('/payment/create-personal', payload);
+  },
+
+  /**
+   * Create a merchant MoMo payment using the test server (requires merchant credentials)
+   */
+  createMerchant: async (payload: { amount: number; orderInfo?: string; items?: any[]; userInfo?: any }) => {
+    return httpClient.post<any>('/payment/create', payload);
   },
 };
 

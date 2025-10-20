@@ -1,6 +1,8 @@
 import React, { useState } from 'react'
 import { ArrowLeft, Plus, Minus, ShoppingCart } from 'lucide-react'
 import PaymentSection from '../ui/PaymentSection'
+import MomoPaymentModal from '../ui/MomoPaymentModal'
+import momoPaymentService from '../../services/momoPaymentService'
 import '../../styles/tracking.css'
 
 interface ProductItem {
@@ -71,6 +73,8 @@ const OrderSection: React.FC = () => {
   const [currentStep, setCurrentStep] = useState<OrderStep>('menu')
   const [cart, setCart] = useState<CartItem[]>([])
   const [paymentMethod, setPaymentMethod] = useState<'qr' | 'momo'>('qr')
+  const [showMomoModal, setShowMomoModal] = useState(false)
+  const [momoPaymentData, setMomoPaymentData] = useState<any>(null)
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('vi-VN', {
@@ -113,13 +117,86 @@ const OrderSection: React.FC = () => {
     return cart.reduce((total, item) => total + item.quantity, 0)
   }
 
-  const handlePaymentConfirm = () => {
-    // Simulate payment processing
+  const handlePaymentConfirm = async () => {
+    // If user selected MoMo, call the test server to create a personal payment and show modal
+    if (paymentMethod === 'momo') {
+      try {
+        console.log('🔵 Starting MoMo payment...')
+        const amount = getTotalAmount()
+        const orderInfo = `Thanh toan don hang - ${new Date().toLocaleString()}`
+
+        console.log('🔵 Calling API with:', { amount, orderInfo, items: cart })
+        const resp = await momoPaymentService.createPersonalPayment({ amount, orderInfo, items: cart })
+        
+        console.log('🔵 API Response:', resp)
+
+        // The test server returns { success: true, data: { momoLink, qrCodeUrl, qrCodeDataURL, orderId } }
+        const data = resp?.data
+
+        console.log('🔵 Payment data:', data)
+
+        if (data) {
+          // Set payment data and show modal
+          const paymentData = {
+            orderId: data.orderId,
+            amount: amount,
+            qrCodeDataURL: data.qrCodeDataURL,
+            momoLink: data.momoLink,
+            payUrl: data.payUrl || data.qrCodeUrl,
+            description: orderInfo
+          }
+          console.log('🔵 Setting payment data:', paymentData)
+          setMomoPaymentData(paymentData)
+          setShowMomoModal(true)
+          console.log('🔵 Modal should be visible now')
+        } else {
+          // Fallback: show error or proceed to success
+          console.error('❌ No payment data returned')
+          alert('Không thể tạo thanh toán MoMo. Vui lòng thử lại.')
+        }
+      } catch (error) {
+        console.error('❌ Momo payment init error:', error)
+        const errorMessage = error instanceof Error ? error.message : 'Không thể kết nối đến server thanh toán'
+        alert(`Lỗi: ${errorMessage}`)
+      }
+      return
+    }
+
+    // Default QR transfer flow (no external request needed)
     setCurrentStep('success')
     setTimeout(() => {
       setCart([])
       setCurrentStep('menu')
     }, 3000)
+  }
+
+  const handleMomoPaymentComplete = () => {
+    // Called when payment is completed in modal
+    setShowMomoModal(false)
+    setCurrentStep('success')
+    setTimeout(() => {
+      setCart([])
+      setCurrentStep('menu')
+    }, 3000)
+  }
+
+  const handleCloseMomoModal = () => {
+    setShowMomoModal(false)
+  }
+
+  // TEST FUNCTION - Mở modal trực tiếp để test UI
+  const handleTestMomoModal = () => {
+    console.log('🧪 TEST: Opening modal directly')
+    setMomoPaymentData({
+      orderId: 'TEST_ORDER_123',
+      amount: getTotalAmount(),
+      qrCodeDataURL: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+      momoLink: 'momo://app?action=transfer&amount=50000',
+      payUrl: 'https://test-payment.momo.vn/gw_payment/123',
+      description: 'TEST - Thanh toán đơn hàng'
+    })
+    setShowMomoModal(true)
+    console.log('🧪 TEST: Modal state set to true')
   }
 
   return (
@@ -159,18 +236,30 @@ const OrderSection: React.FC = () => {
             
             {/* Cart Button */}
             {currentStep === 'menu' && cart.length > 0 && (
-              <button
-                onClick={() => setCurrentStep('cart')}
-                className="relative bg-gradient-to-r from-green-500 to-emerald-500 text-white px-4 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
-              >
-                <div className="flex items-center gap-2">
-                  <ShoppingCart className="w-5 h-5" />
-                  <span>Giỏ hàng</span>
-                  <span className="bg-white/20 rounded-full px-2 py-1 text-xs">
-                    {getTotalItems()}
-                  </span>
-                </div>
-              </button>
+              <div className="flex items-center gap-2">
+                {/* TEST Button - Remove in production */}
+                {process.env.NODE_ENV === 'development' && (
+                  <button
+                    onClick={handleTestMomoModal}
+                    className="bg-purple-500 hover:bg-purple-600 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                    title="Test MoMo Modal"
+                  >
+                    🧪 Test MoMo
+                  </button>
+                )}
+                <button
+                  onClick={() => setCurrentStep('cart')}
+                  className="relative bg-gradient-to-r from-green-500 to-emerald-500 text-white px-4 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+                >
+                  <div className="flex items-center gap-2">
+                    <ShoppingCart className="w-5 h-5" />
+                    <span>Giỏ hàng</span>
+                    <span className="bg-white/20 rounded-full px-2 py-1 text-xs">
+                      {getTotalItems()}
+                    </span>
+                  </div>
+                </button>
+              </div>
             )}
           </div>
         </div>
@@ -294,6 +383,17 @@ const OrderSection: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* MoMo Payment Modal */}
+      {momoPaymentData && (
+        <MomoPaymentModal
+          isOpen={showMomoModal}
+          onClose={handleCloseMomoModal}
+          paymentData={momoPaymentData}
+          cartItems={cart}
+          onPaymentComplete={handleMomoPaymentComplete}
+        />
+      )}
     </div>
   )
 }

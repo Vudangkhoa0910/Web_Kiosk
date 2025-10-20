@@ -6,8 +6,6 @@ import {
   CheckCircle2,
   Minus,
   Plus,
-  QrCode,
-  Smartphone,
   User,
   Phone,
   FileText,
@@ -18,13 +16,12 @@ import { useNavigate } from 'react-router-dom'
 import { useKioskStore } from '../../stores/kioskStore'
 import { useAppStore } from '../../hooks/useAppStore'
 import { useLanguage } from '../../contexts/LanguageContext'
-import { generateVietQR, BANK_INFO } from '../../utils/vietqr'
 import { PathRenderer, JourneyRobot } from './home'
-import '../../styles/tracking.css'
+import momoPaymentService from '../../services/momoPaymentService'
 import '../../styles/tracking.css'
 
 type FlowStep = 'restaurant' | 'menu' | 'details' | 'payment' | 'success'
-type PaymentMethod = 'qr' | 'momo'
+type PaymentMethod = 'momo'
 
 interface ProductItem {
   id: string
@@ -243,11 +240,11 @@ const OrderFlowSection: React.FC = () => {
   const [selectedItem, setSelectedItem] = useState<ProductItem | null>(null)
   const [step, setStep] = useState<FlowStep>('restaurant')
   const [customer, setCustomer] = useState({ name: '', phone: '', note: '' })
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('qr')
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('momo')
   const [isProcessing, setIsProcessing] = useState(false)
-  const [isWaitingPaymentConfirm, setIsWaitingPaymentConfirm] = useState(false)
   const [orderId, setOrderId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [momoPaymentUrl, setMomoPaymentUrl] = useState<string | null>(null)
 
   const { addToCart, clearCart, createOrder, initiatePayment, currentOrder } = useKioskStore()
   const { setActiveSection } = useAppStore()
@@ -341,9 +338,11 @@ const OrderFlowSection: React.FC = () => {
     setSelectedItem(null)
     setStep('restaurant')
     setCustomer({ name: '', phone: '', note: '' })
-    setPaymentMethod('qr')
+    setPaymentMethod('momo')
     setOrderId(null)
     setError(null)
+    setMomoPaymentUrl(null)
+    setIsProcessing(false)
   }
 
   const addItemToCart = (item: ProductItem) => {
@@ -375,121 +374,58 @@ const OrderFlowSection: React.FC = () => {
     return selectedItems.reduce((total, item) => total + (item.price * item.quantity), 0)
   }
 
-  const processOrder = async () => {
-    setIsProcessing(true)
-    setError(null)
-    try {
-      clearCart()
-      
-      // Add all selected items to cart
-      selectedItems.forEach(item => {
-        addToCart(
-          {
-            id: item.id,
-            name: item.name,
-            description: item.description,
-            price: item.price,
-            image: item.image,
-            category: item.category,
-            available: true
-          },
-          item.quantity
-        )
-      })
-
-      const createdOrderId = await createOrder(
-        {
-          phone: customer.phone,
-          location: customer.name || 'Điểm nhận kiosk',
-          notes: customer.note
-        },
-        paymentMethod
-      )
-
-      await initiatePayment(createdOrderId, paymentMethod)
-      setOrderId(createdOrderId)
-      setIsWaitingPaymentConfirm(false)
-      setStep('success')
-    } catch (err) {
-      console.error(err)
-      setError('Không thể tạo đơn hàng, vui lòng thử lại.')
-      setIsWaitingPaymentConfirm(false)
-    } finally {
-      setIsProcessing(false)
-    }
-  }
-
   const canContinueDetails = Boolean(customer.name.trim() && customer.phone.trim())
 
-  const handlePlaceOrder = async () => {
-    if (selectedItems.length === 0) return
-    
-    // Start payment processing for both QR and MoMo
-    if (paymentMethod === 'qr') {
-      // For QR, show waiting state immediately
-      setIsWaitingPaymentConfirm(true)
-      
-      // Simulate waiting for admin confirmation (in reality would be WebSocket or polling)
-      setTimeout(async () => {
-        await processOrder()
-      }, 5000) // Simulate 5 seconds waiting for admin confirmation
-      return
+  // Auto-initialize MoMo payment when entering payment step
+  useEffect(() => {
+    if (step === 'payment' && !momoPaymentUrl && !isProcessing && selectedItems.length > 0) {
+      const initMomoPayment = async () => {
+        try {
+          console.log('🔵 Auto-starting MoMo payment...')
+          setIsProcessing(true)
+          const amount = getTotalAmount()
+          const orderInfo = `Thanh toan ${selectedRestaurant?.name || 'don hang'} - ${new Date().toLocaleString()}`
+
+          console.log('🔵 Calling MoMo API with:', { amount, orderInfo, items: selectedItems })
+          
+          // Use merchant payment to get official MoMo payUrl
+          const resp = await momoPaymentService.createMerchantPayment({ 
+            amount, 
+            orderInfo, 
+            items: selectedItems,
+            userInfo: {
+              name: customer.name,
+              phone: customer.phone,
+              note: customer.note
+            }
+          })
+          
+          console.log('🔵 MoMo API Response:', resp)
+
+          const data = resp?.data
+
+          if (data && data.payUrl) {
+            // Set payUrl to embed in iframe
+            console.log('🔵 Embedding MoMo gateway in iframe:', data.payUrl)
+            setMomoPaymentUrl(data.payUrl)
+            setIsProcessing(false)
+          } else {
+            console.error('❌ No payUrl returned from MoMo API')
+            console.error('Response data:', data)
+            setIsProcessing(false)
+            setError('Không thể tạo thanh toán MoMo. Vui lòng thử lại.')
+          }
+        } catch (error) {
+          console.error('❌ MoMo payment init error:', error)
+          const errorMessage = error instanceof Error ? error.message : 'Không thể kết nối đến server thanh toán'
+          setIsProcessing(false)
+          setError(errorMessage)
+        }
+      }
+
+      initMomoPayment()
     }
-    
-    if (paymentMethod === 'momo') {
-      // For MoMo, simulate app redirect and processing
-      setIsProcessing(true)
-      setError(null)
-      
-      // Simulate MoMo app processing time
-      setTimeout(async () => {
-        await processOrder()
-      }, 3000) // Simulate 3 seconds for MoMo processing
-      return
-    }
-    
-    setIsProcessing(true)
-    setError(null)
-    try {
-      clearCart()
-      
-      // Add all selected items to cart
-      selectedItems.forEach(item => {
-        addToCart(
-          {
-            id: item.id,
-            name: item.name,
-            description: item.description,
-            price: item.price,
-            image: item.image,
-            category: item.category,
-            available: true
-          },
-          item.quantity
-        )
-      })
-
-      const createdOrderId = await createOrder(
-        {
-          phone: customer.phone,
-          location: customer.name || 'Điểm nhận kiosk',
-          notes: customer.note
-        },
-        paymentMethod
-      )
-
-      await initiatePayment(createdOrderId, paymentMethod)
-      setOrderId(createdOrderId)
-      setStep('success')
-    } catch (err) {
-      console.error(err)
-      setError('Không thể tạo đơn hàng, vui lòng thử lại.')
-    } finally {
-      setIsProcessing(false)
-    }
-  }
-
-
+  }, [step, momoPaymentUrl, isProcessing, selectedItems, selectedRestaurant, customer])
 
   // If there's an active order, show blocking message
   if (hasActiveOrder) {
@@ -719,7 +655,9 @@ const OrderFlowSection: React.FC = () => {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
-              className="bg-white rounded-3xl max-w-md w-full max-h-[80vh] overflow-hidden shadow-2xl border border-gray-100"
+              className={`bg-white rounded-3xl w-full shadow-2xl border border-gray-100 overflow-hidden transition-all duration-300 ${
+                momoPaymentUrl ? 'max-w-6xl max-h-[92vh]' : 'max-w-md max-h-[80vh]'
+              }`}
             >
               {/* Modal Header */}
               <div className="flex items-center justify-between p-5 border-b border-gray-100">
@@ -749,7 +687,9 @@ const OrderFlowSection: React.FC = () => {
               </div>
 
               {/* Modal Content */}
-              <div className="p-5 overflow-y-auto max-h-[calc(80vh-90px)]">
+              <div className={`overflow-y-auto ${
+                momoPaymentUrl ? 'p-3 max-h-[calc(92vh-90px)]' : 'p-5 max-h-[calc(80vh-90px)]'
+              }`}>
 
                 {error && (
                   <div className="mb-4 rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">
@@ -964,140 +904,75 @@ const OrderFlowSection: React.FC = () => {
                 )}
 
                 {step === 'payment' && (
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2">Phương thức thanh toán</h3>
-                      <p className="text-sm text-gray-600">Chọn phương thức thanh toán bạn muốn sử dụng.</p>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <button
-                        onClick={() => setPaymentMethod('qr')}
-                        className={`flex flex-col items-center gap-3 rounded-2xl border-2 p-6 transition-all duration-200 ${
-                          paymentMethod === 'qr'
-                            ? 'border-gray-600 bg-gray-50 text-gray-800 shadow-md'
-                            : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:shadow-sm'
-                        }`}
-                      >
-                        <QrCode className="h-8 w-8" />
-                        <div className="text-center">
-                          <p className="font-semibold">QR Code</p>
-                          <p className="text-xs mt-1 opacity-70">Quét mã thanh toán</p>
-                        </div>
-                      </button>
-                      
-                      <button
-                        onClick={() => setPaymentMethod('momo')}
-                        className={`flex flex-col items-center gap-3 rounded-2xl border-2 p-6 transition-all duration-200 ${
-                          paymentMethod === 'momo'
-                            ? 'border-gray-600 bg-gray-50 text-gray-800 shadow-md'
-                            : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:shadow-sm'
-                        }`}
-                      >
-                        <Smartphone className="h-8 w-8" />
-                        <div className="text-center">
-                          <p className="font-semibold">Ví MoMo</p>
-                          <p className="text-xs mt-1 opacity-70">Thanh toán qua ví điện tử</p>
-                        </div>
-                      </button>
-                    </div>
-
-                    <div className="rounded-2xl bg-gray-50 p-4 space-y-2 border border-gray-100">
-                      <h4 className="font-semibold text-gray-800 mb-2">Chi tiết đơn hàng</h4>
+                  <div className="space-y-2">
+                    <div className="rounded-xl bg-gray-50 p-2.5 border border-gray-200">
+                      <h4 className="font-semibold text-gray-800 text-sm mb-1.5">Chi tiết đơn hàng</h4>
                       {selectedItems.map((item) => (
-                        <div key={item.id} className="flex justify-between text-sm">
+                        <div key={item.id} className="flex justify-between text-xs mb-1">
                           <span>{item.name} x{item.quantity}</span>
-                          <span>{formatCurrency(item.price * item.quantity)}</span>
+                          <span className="font-medium">{formatCurrency(item.price * item.quantity)}</span>
                         </div>
                       ))}
-                      <div className="flex justify-between text-sm">
+                      <div className="flex justify-between text-xs text-gray-600 mb-1">
                         <span>Phí giao hàng:</span>
-                        <span className="text-gray-600">Miễn phí</span>
+                        <span>Miễn phí</span>
                       </div>
-                      <hr className="my-2" />
-                      <div className="flex justify-between text-lg font-bold">
+                      <div className="flex justify-between text-sm font-bold pt-1.5 border-t border-gray-300">
                         <span>Tổng cộng:</span>
-                        <span className="text-gray-800">{formatCurrency(getTotalAmount())}</span>
+                        <span className="text-gray-900">{formatCurrency(getTotalAmount())}</span>
                       </div>
                     </div>
 
-                    {/* QR Code UI */}
-                    {paymentMethod === 'qr' && !isWaitingPaymentConfirm && (
-                      <div className="flex flex-col items-center space-y-4">
-                        <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-                          <img
-                            src={generateVietQR(
-                              BANK_INFO.accountNo,
-                              BANK_INFO.accountName,
-                              getTotalAmount(),
-                              `Thanh toan don hang ${selectedRestaurant?.name || ''}`,
-                              BANK_INFO.bankCode
-                            )}
-                            alt="QR Code thanh toán"
-                            className="w-64 h-64 object-contain"
-                          />
-                        </div>
-                        
-                        {/* Bank Info */}
-                        <div className="bg-gray-50 rounded-2xl p-4 w-full border border-gray-100">
-                          <h4 className="font-semibold text-gray-800 mb-2">Thông tin chuyển khoản</h4>
-                          <div className="space-y-1 text-sm text-gray-600">
-                            <div className="flex justify-between">
-                              <span>Ngân hàng:</span>
-                              <span className="font-medium">MB Bank</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span>Số tài khoản:</span>
-                              <span className="font-medium">{BANK_INFO.accountNo}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span>Chủ tài khoản:</span>
-                              <span className="font-medium">{BANK_INFO.accountName}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span>Số tiền:</span>
-                              <span className="font-medium text-gray-800">
-                                {formatCurrency(getTotalAmount())}
-                              </span>
-                            </div>
+                    {/* MoMo Payment Iframe - Full view without scroll */}
+                    {momoPaymentUrl && (
+                      <div className="space-y-1.5">
+                        {/* Embedded MoMo iframe - Full size with gray theme */}
+                        <div className="relative rounded-lg overflow-hidden border-2 border-gray-300 bg-white shadow-md">
+                          <div className="bg-gradient-to-r from-gray-700 to-gray-900 px-2.5 py-1 flex items-center justify-between">
+                            <span className="text-white text-xs font-medium">Kết nối bảo mật</span>
+                            <button
+                              onClick={() => {
+                                setMomoPaymentUrl(null)
+                                setIsProcessing(false)
+                              }}
+                              className="text-white hover:text-gray-200 font-bold text-lg leading-none transition-all duration-200"
+                              title="Đóng"
+                            >
+                              ×
+                            </button>
+                          </div>
+                          
+                          <div className="bg-gray-50 p-0.5">
+                            <iframe
+                              src={momoPaymentUrl}
+                              className="w-full h-[600px] border-0 bg-white"
+                              title="MoMo Payment Gateway"
+                              sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
+                              allow="payment"
+                            />
                           </div>
                         </div>
-                      </div>
-                    )}
 
-                    {/* MoMo UI */}
-                    {paymentMethod === 'momo' && !isProcessing && (
-                      <div className="flex flex-col items-center space-y-4">
-                        <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100 text-center">
-                          <div className="w-24 h-24 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <Smartphone className="w-12 h-12 text-pink-600" />
-                          </div>
-                          <h3 className="text-xl font-bold text-gray-900 mb-2">Thanh toán MoMo</h3>
-                          <p className="text-gray-600 mb-6">
-                            Số tiền: <span className="font-bold text-pink-600">{formatCurrency(getTotalAmount())}</span>
-                          </p>
-                          <p className="text-sm text-gray-500 mb-4">
-                            Bấm "Mở ứng dụng MoMo" để tiếp tục thanh toán
-                          </p>
-                          <div className="bg-pink-50 rounded-xl p-4 text-sm text-pink-700">
-                            <p>• Mở ứng dụng MoMo trên điện thoại</p>
-                            <p>• Xác nhận thông tin thanh toán</p>
-                            <p>• Hoàn tất giao dịch</p>
+                        {/* Quick instructions - Compact with gray theme */}
+                        <div className="bg-gray-100 rounded-lg p-1.5 border border-gray-300">
+                          <p className="font-semibold text-xs text-gray-900 mb-0.5">Hướng dẫn:</p>
+                          <div className="text-xs text-gray-700 leading-tight">
+                            <p>1. Mở app MoMo/Ngân hàng → 2. Quét QR → 3. Xác nhận thanh toán</p>
                           </div>
                         </div>
                       </div>
                     )}
 
                     {/* Loading states */}
-                    {(isWaitingPaymentConfirm || isProcessing) && (
-                      <div className="flex flex-col items-center space-y-6 py-8">
+                    {isProcessing && (
+                      <div className="flex flex-col items-center space-y-3 py-4">
                         <div className="relative">
                           {/* Robot spinning animation */}
                           <div className="robot-container">
                             <img
                               src="/images/Bulldog/2.png"
                               alt="Robot đang xử lý"
-                              className="w-24 h-24 object-contain robot-spin"
+                              className="w-16 h-16 object-contain robot-spin"
                             />
                             <div className="loading-dots">
                               <div className="loading-dot"></div>
@@ -1108,62 +983,29 @@ const OrderFlowSection: React.FC = () => {
                         </div>
                         
                         <div className="text-center">
-                          <h3 className="text-xl font-bold text-gray-900 mb-2">
-                            {isWaitingPaymentConfirm ? 'Đang chờ xác nhận thanh toán' : 'Đang xử lý thanh toán'}
+                          <h3 className="text-base font-bold text-gray-900 mb-1">
+                            Đang kết nối MoMo...
                           </h3>
-                          <p className="text-gray-600">
-                            {isWaitingPaymentConfirm 
-                              ? 'Vui lòng chờ admin xác nhận đã nhận được tiền...' 
-                              : 'Đang xử lý giao dịch MoMo của bạn...'}
+                          <p className="text-xs text-gray-600">
+                            Vui lòng chờ trong giây lát
                           </p>
-                        </div>
-                        
-                        {/* Progress info */}
-                        <div className="bg-white rounded-xl p-4 border border-gray-200 w-full max-w-sm">
-                          <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
-                            <span>Quán:</span>
-                            <span className="font-medium">{selectedRestaurant?.name}</span>
-                          </div>
-                          <div className="text-sm text-gray-600 mb-2">
-                            <span>Món đã chọn:</span>
-                            <div className="mt-1 space-y-1">
-                              {selectedItems.map((item) => (
-                                <div key={item.id} className="flex justify-between">
-                                  <span>{item.name} x{item.quantity}</span>
-                                  <span>{formatCurrency(item.price * item.quantity)}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                          <div className="flex items-center justify-between text-sm text-gray-600 pt-2 border-t border-gray-200">
-                            <span>Tổng tiền:</span>
-                            <span className="font-semibold text-gray-800">
-                              {formatCurrency(getTotalAmount())}
-                            </span>
-                          </div>
                         </div>
                       </div>
                     )}
 
-                    <div className="flex justify-between gap-3">
+                    {/* Back button only */}
+                    <div className="flex justify-start pt-1">
                       <button
-                        onClick={() => setStep('details')}
-                        className="rounded-2xl border border-gray-300 px-6 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 flex items-center gap-2"
+                        onClick={() => {
+                          setStep('details')
+                          setMomoPaymentUrl(null)
+                          setIsProcessing(false)
+                        }}
+                        disabled={isProcessing}
+                        className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <ArrowLeft className="h-4 w-4" />
                         Quay lại
-                      </button>
-                      <button
-                        onClick={handlePlaceOrder}
-                        disabled={isProcessing}
-                        className={`rounded-2xl px-6 py-2.5 text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
-                          isProcessing 
-                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-                            : 'bg-gray-800 text-white hover:bg-gray-900 shadow-md hover:shadow-lg'
-                        }`}
-                      >
-                        {isProcessing ? 'Đang xử lý...' : 'Đặt hàng ngay'}
-                        {!isProcessing && <CheckCircle2 className="h-4 w-4" />}
                       </button>
                     </div>
                   </div>
