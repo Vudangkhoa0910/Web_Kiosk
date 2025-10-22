@@ -3,7 +3,7 @@ import type { NavigationSection } from '../../types'
 import { cn } from '../../utils'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useAuth } from '../../contexts/AuthContext'
-import LanguageToggle from '../ui/LanguageToggle'
+// import LanguageToggle from '../ui/LanguageToggle'
 import { TutorialModal } from '../ui/TutorialModal'
 import { 
   Home, 
@@ -167,11 +167,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <LogOut className="h-3 w-3 mr-1" />
               {t.auth.logout}
             </button>
-          </div>
-          
-          {/* Language Toggle */}
-          <div className="mb-3 flex justify-center">
-            <LanguageToggle variant="light" />
           </div>
           
           {/* Tutorial Button */}

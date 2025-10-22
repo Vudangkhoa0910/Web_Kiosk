@@ -1,3 +1,5 @@
 // Export all services
-export { socketMqttService } from './socketMqttService';
-export type { RobotData, FormattedRobotStatus } from './socketMqttService';
+// MQTT services have been disabled
+// export { socketMqttService } from './socketMqttService';
+// export type { RobotData, FormattedRobotStatus } from './socketMqttService';
+

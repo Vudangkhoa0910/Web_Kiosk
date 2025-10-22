@@ -2,7 +2,6 @@ import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { Layout } from './components/layout/Layout';
 import OrderFlowSection from './components/sections/OrderFlowSection';
-import { KioskHistorySection } from './components/sections/KioskHistorySection';
 import TrackingSection from './components/sections/TrackingSection';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -10,7 +9,8 @@ import AuthLandingPage from './pages/AuthLandingPage';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
-import { socketMqttService } from './services';
+// MQTT service has been disabled
+// import { socketMqttService } from './services';
 import { useAppStore } from './hooks/useAppStore';
 
 // Main App Content with URL Routing
@@ -57,28 +57,28 @@ const AppContent: React.FC = () => {
     checkActiveOrder();
   }, [location.pathname, navigate, setActiveSection]);
 
-  // Initialize Socket.IO MQTT connection
-  useEffect(() => {
-    let isInitialized = false;
-    
-    const initializeSocketMQTT = async () => {
-      if (isInitialized) return;
-      isInitialized = true;
-      
-      try {
-        console.log('Initializing Socket.IO MQTT connection...');
-        socketMqttService.connect();
-      } catch (error) {
-        console.error('Failed to initialize Socket.IO MQTT:', error);
-      }
-    };
-
-    initializeSocketMQTT();
-
-    return () => {
-      socketMqttService.disconnect();
-    };
-  }, []);
+  // MQTT connection has been disabled
+  // useEffect(() => {
+  //   let isInitialized = false;
+  //   
+  //   const initializeSocketMQTT = async () => {
+  //     if (isInitialized) return;
+  //     isInitialized = true;
+  //     
+  //     try {
+  //       console.log('Initializing Socket.IO MQTT connection...');
+  //       socketMqttService.connect();
+  //     } catch (error) {
+  //       console.error('Failed to initialize Socket.IO MQTT:', error);
+  //     }
+  //   };
+  //
+  //   initializeSocketMQTT();
+  //
+  //   return () => {
+  //     socketMqttService.disconnect();
+  //   };
+  // }, []);
 
   return (
     <>
@@ -94,7 +94,6 @@ const AppContent: React.FC = () => {
             <Routes>
               <Route path="/" element={<OrderFlowSection />} />
               <Route path="/tracking" element={<TrackingSection onBackToHome={() => navigate('/')} />} />
-              <Route path="/history" element={<KioskHistorySection />} />
               <Route path="*" element={<OrderFlowSection />} />
             </Routes>
           </Layout>

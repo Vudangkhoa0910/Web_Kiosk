@@ -1,15 +1,15 @@
 /**
- * MoMo Payment Service - Riêng biệt cho MoMo test server
- * Server này chạy độc lập trên port 3000
+ * MoMo Payment Service - Kết nối với backend chính
  */
 
-// MoMo test server URL (khác với backend chính)
-const MOMO_API_BASE_URL = import.meta.env.VITE_MOMO_API_URL || 'http://localhost:3000/api';
+// Backend API URL (port 3001 - backend chính thức)
+const MOMO_API_BASE_URL = import.meta.env.VITE_MOMO_API_URL || 'http://localhost:3001/api/momo';
 
 interface MomoPaymentRequest {
   amount: number;
   orderInfo?: string;
   items?: any[];
+  userInfo?: any;
 }
 
 interface MomoPaymentResponse {
@@ -17,12 +17,9 @@ interface MomoPaymentResponse {
   data?: {
     orderId: string;
     amount: number;
-    description: string;
-    qrCodeDataURL: string;
-    momoLink: string;
-    phoneNumber: string;
     payUrl?: string;
     qrCodeUrl?: string;
+    deeplink?: string;
   };
   error?: string;
   message?: string;
@@ -46,14 +43,14 @@ class MomoPaymentService {
   }
 
   /**
-   * Tạo thanh toán MoMo Personal (không cần merchant account)
+   * Tạo thanh toán MoMo Merchant
    */
-  async createPersonalPayment(payload: MomoPaymentRequest): Promise<MomoPaymentResponse> {
+  async createMerchantPayment(payload: MomoPaymentRequest): Promise<MomoPaymentResponse> {
     try {
-      console.log('🔵 MomoService: Calling', `${this.baseURL}/payment/create-personal`);
+      console.log('🔵 MomoService: Calling', `${this.baseURL}/create`);
       console.log('🔵 MomoService: Payload', payload);
 
-      const response = await fetch(`${this.baseURL}/payment/create-personal`, {
+      const response = await fetch(`${this.baseURL}/create`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -72,31 +69,11 @@ class MomoPaymentService {
   }
 
   /**
-   * Tạo thanh toán MoMo Merchant (cần merchant account)
-   */
-  async createMerchantPayment(payload: MomoPaymentRequest & { userInfo?: any }): Promise<MomoPaymentResponse> {
-    try {
-      const response = await fetch(`${this.baseURL}/payment/create`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      return await this.handleResponse(response);
-    } catch (error) {
-      console.error('MoMo merchant payment error:', error);
-      throw error;
-    }
-  }
-
-  /**
    * Kiểm tra trạng thái thanh toán
    */
   async checkPaymentStatus(orderId: string): Promise<any> {
     try {
-      const response = await fetch(`${this.baseURL}/payment/status/${orderId}`, {
+      const response = await fetch(`${this.baseURL}/status/${orderId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -106,6 +83,25 @@ class MomoPaymentService {
       return await this.handleResponse(response);
     } catch (error) {
       console.error('Check payment status error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Giả lập thanh toán thành công (CHỈ DÙNG ĐỂ DEMO)
+   */
+  async simulatePaymentSuccess(orderId: string): Promise<any> {
+    try {
+      const response = await fetch(`${this.baseURL}/simulate-success/${orderId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      return await this.handleResponse(response);
+    } catch (error) {
+      console.error('Simulate payment success error:', error);
       throw error;
     }
   }
