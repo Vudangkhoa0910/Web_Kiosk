@@ -568,20 +568,48 @@ const OrderFlowSection: React.FC = () => {
     
     if (errorType === 'payment_failed') {
       console.log('🔴 Detected payment failure/cancellation from URL');
+      console.log('📊 Current state:', {
+        step,
+        selectedItemsCount: selectedItems.length,
+        userCancelledPayment,
+        hasCustomerInfo: !!(customer.name && customer.phone)
+      });
       
-      // Set userCancelledPayment to show retry dialog
+      // CRITICAL: Set userCancelledPayment FIRST before any other state changes
       setUserCancelledPayment(true);
       
-      // Stay on payment step if we were there, otherwise go to payment step
-      if (step !== 'payment' && selectedItems.length > 0) {
+      // If no items in cart, try to restore from Zustand store (PaymentResult should have added them)
+      if (selectedItems.length === 0) {
+        console.log('⚠️ No items in cart - checking Zustand store...');
+        const { useKioskStore } = require('../../stores/kioskStore');
+        const cartItems = useKioskStore.getState().cartItems || [];
+        console.log('📦 Found items in store:', cartItems.length);
+        if (cartItems.length > 0) {
+          setSelectedItems(cartItems);
+          console.log('✅ Restored items to local state');
+        } else {
+          console.warn('❌ No items found in store either - user will need to restart');
+        }
+      }
+      
+      // Navigate to payment step if not already there
+      if (step !== 'payment') {
+        console.log('🔄 Redirecting to payment step...');
         setStep('payment');
+      } else {
+        console.log('✅ Already on payment step, retry dialog should show');
       }
       
       // Clear the error from URL to prevent re-triggering
       const newUrl = window.location.pathname;
       window.history.replaceState({}, '', newUrl);
+      
+      // Force a re-render to ensure dialog shows
+      setTimeout(() => {
+        console.log('🎨 Force re-render - userCancelledPayment:', userCancelledPayment);
+      }, 100);
     }
-  }, [location.search, step, selectedItems.length]);
+  }, [location.search]); // Simplified dependencies to avoid infinite loops
 
   // Auto-initialize MoMo payment when entering payment step
   useEffect(() => {
@@ -1193,18 +1221,26 @@ const OrderFlowSection: React.FC = () => {
                 {step === 'payment' && (
                   <div>
                     {/* Show retry button if user cancelled payment */}
-                    {userCancelledPayment && !momoPaymentUrl && (
+                    {userCancelledPayment && !momoPaymentUrl && (() => {
+                      console.log('🎨 Rendering retry dialog:', {
+                        userCancelledPayment,
+                        momoPaymentUrl,
+                        step,
+                        selectedItemsCount: selectedItems.length
+                      });
+                      return true;
+                    })() && (
                       <div className="mb-6">
-                        <div className="rounded-2xl bg-gradient-to-br from-gray-50 to-white border-2 border-gray-200 p-6 shadow-lg">
+                        <div className="rounded-2xl bg-gradient-to-br from-yellow-50 to-orange-50 border-2 border-orange-300 p-6 shadow-lg">
                           {/* Icon and Message */}
                           <div className="text-center mb-5">
-                            <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm">
-                              <svg className="w-8 h-8 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div className="w-16 h-16 bg-orange-100 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm">
+                              <svg className="w-8 h-8 text-orange-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                               </svg>
                             </div>
                             <h3 className="text-lg font-bold text-gray-900 mb-2">
-                              Thanh toán chưa hoàn tất
+                              ⚠️ Thanh toán chưa hoàn tất
                             </h3>
                             <p className="text-sm text-gray-600 leading-relaxed">
                               Bạn đã huỷ thanh toán. Vui lòng chọn một trong các tùy chọn bên dưới.
