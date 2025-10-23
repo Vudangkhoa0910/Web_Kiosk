@@ -561,6 +561,46 @@ const OrderFlowSection: React.FC = () => {
 
   const canContinueDetails = Boolean(customer.name.trim() && customer.phone.trim())
 
+  // Check sessionStorage for payment cancellation flag (survives navigation)
+  useEffect(() => {
+    const wasCancelled = sessionStorage.getItem('payment_cancelled');
+    if (wasCancelled === 'true') {
+      console.log('� Found payment_cancelled flag in sessionStorage');
+      
+      // Restore from sessionStorage
+      const savedItems = sessionStorage.getItem('cancelled_order_items');
+      const savedCustomer = sessionStorage.getItem('cancelled_order_customer');
+      
+      if (savedItems) {
+        try {
+          const items = JSON.parse(savedItems);
+          setSelectedItems(items);
+          console.log('✅ Restored items from sessionStorage:', items.length);
+        } catch (e) {
+          console.error('Failed to parse saved items:', e);
+        }
+      }
+      
+      if (savedCustomer) {
+        try {
+          const customerData = JSON.parse(savedCustomer);
+          setCustomer(customerData);
+          console.log('✅ Restored customer info from sessionStorage');
+        } catch (e) {
+          console.error('Failed to parse saved customer:', e);
+        }
+      }
+      
+      // Set UI state
+      setUserCancelledPayment(true);
+      setStep('payment');
+      
+      // Clean up sessionStorage
+      sessionStorage.removeItem('payment_cancelled');
+      console.log('✅ Cleared sessionStorage flags');
+    }
+  }, []); // Run once on mount
+
   // Handle payment error/cancel from URL params (after MoMo redirect)
   useEffect(() => {
     const urlParams = new URLSearchParams(location.search);
@@ -568,45 +608,30 @@ const OrderFlowSection: React.FC = () => {
     
     if (errorType === 'payment_failed') {
       console.log('🔴 Detected payment failure/cancellation from URL');
-      console.log('📊 Current state:', {
-        step,
-        selectedItemsCount: selectedItems.length,
-        userCancelledPayment,
-        hasCustomerInfo: !!(customer.name && customer.phone)
-      });
       
-      // CRITICAL: Set userCancelledPayment FIRST before any other state changes
-      setUserCancelledPayment(true);
+      // ✅ SAVE TO SESSION STORAGE (survives navigation)
+      sessionStorage.setItem('payment_cancelled', 'true');
       
-      // If no items in cart, try to restore from Zustand store (PaymentResult should have added them)
-      if (selectedItems.length === 0 && zustandCartItems && zustandCartItems.length > 0) {
-        console.log('⚠️ No items in local cart - restoring from Zustand store...');
-        console.log('📦 Found items in store:', zustandCartItems.length);
-        // Note: We can't directly use zustandCartItems as types might differ
-        // Just trigger step change - items will be in store for user to re-order
-        console.log('✅ Items are in Zustand store, user can recreate order');
-      } else if (selectedItems.length === 0) {
-        console.warn('❌ No items found in any store - user will need to restart order');
+      // Save cart items
+      if (zustandCartItems && zustandCartItems.length > 0) {
+        sessionStorage.setItem('cancelled_order_items', JSON.stringify(zustandCartItems));
+        console.log('💾 Saved', zustandCartItems.length, 'items to sessionStorage');
       }
       
-      // Navigate to payment step if not already there
-      if (step !== 'payment') {
-        console.log('🔄 Redirecting to payment step...');
-        setStep('payment');
-      } else {
-        console.log('✅ Already on payment step, retry dialog should show');
+      // Save customer info
+      if (customer.name || customer.phone) {
+        sessionStorage.setItem('cancelled_order_customer', JSON.stringify(customer));
+        console.log('💾 Saved customer info to sessionStorage');
       }
       
-      // Clear the error from URL to prevent re-triggering
-      const newUrl = window.location.pathname;
-      window.history.replaceState({}, '', newUrl);
+      // Clear URL param
+      window.history.replaceState({}, '', window.location.pathname);
       
-      // Force a re-render to ensure dialog shows
-      setTimeout(() => {
-        console.log('🎨 Force re-render - userCancelledPayment:', userCancelledPayment);
-      }, 100);
+      // Reload to trigger restoration from sessionStorage
+      console.log('🔄 Reloading to restore state from sessionStorage...');
+      window.location.reload();
     }
-  }, [location.search]); // Simplified dependencies to avoid infinite loops
+  }, [location.search]);
 
   // Auto-initialize MoMo payment when entering payment step
   useEffect(() => {
