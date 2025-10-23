@@ -1,8 +1,10 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { Timer, CheckCircle2, Package, TruckIcon, MapPin, ShoppingBag, Smartphone, MessageSquare } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import DeliveryMap from '../ui/DeliveryMap'
 import { useKioskStore } from '../../stores/kioskStore'
+import type { Order } from '../../stores/kioskStore'
+import { maskPhoneNumber, formatOrderId } from '../../utils/formatters'
 import '../../styles/tracking.css'
 
 // Delivery stages for timeline
@@ -83,50 +85,81 @@ interface TrackingSectionProps {
 
 const TrackingSection: React.FC<TrackingSectionProps> = () => {
   const navigate = useNavigate()
+  const location = useLocation()
   const { currentOrder, completeOrder } = useKioskStore()
   const [isCompleting, setIsCompleting] = useState(false)
   
-  // Simulate delivery stage - auto progress for demo
+  // Get order information from navigation state (from payment flow)
+  const navigationState = location.state as any
+  const newOrderInfo = navigationState?.newOrder
+  const fromPayment = navigationState?.fromPayment
+  
+  // Convert newOrderInfo to Order format and memoize to avoid re-creation
+  const adaptedOrder = useMemo((): Order | null => {
+    if (!newOrderInfo) return null
+    
+    return {
+      id: newOrderInfo.orderId,
+      externalId: newOrderInfo.orderId,
+      status: 'preparing' as const,
+      items: newOrderInfo.items.map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        image: item.image,
+        category: item.category
+      })),
+      total: newOrderInfo.totalAmount,
+      subtotal: newOrderInfo.totalAmount,
+      deliveryFee: 0,
+      paymentMethod: newOrderInfo.paymentMethod || 'momo',
+      customerInfo: {
+        name: newOrderInfo.customer?.name || '',
+        phone: newOrderInfo.customer?.phone || '',
+        email: '',
+        location: newOrderInfo.restaurant?.location || 'Kiosk Alpha Asimov',
+        notes: newOrderInfo.customer?.note || ''
+      },
+      timestamps: {
+        created: new Date(newOrderInfo.timestamp),
+        confirmed: new Date(newOrderInfo.timestamp),
+        preparing: null,
+        ready: null,
+        delivering: null,
+        delivered: null
+      },
+      estimatedDeliveryTime: 15,
+      robotPosition: undefined
+    }
+  }, [newOrderInfo])
+  
+  // Use adapted order if available (from payment), otherwise use currentOrder from store
+  const displayOrder = adaptedOrder || currentOrder
+  
+  // Log success message when coming from payment
+  useEffect(() => {
+    if (fromPayment && newOrderInfo) {
+      console.log('🎉 Payment Success! Order Info:', {
+        orderId: newOrderInfo.orderId,
+        items: newOrderInfo.items,
+        customer: newOrderInfo.customer,
+        total: newOrderInfo.totalAmount
+      })
+    }
+  }, [fromPayment, newOrderInfo])
+  
+  // Simulate delivery stage - manual control only
   const [currentStage, setCurrentStage] = useState<DeliveryStage>('preparing')
 
-  // Auto progress through stages for demo (3-5 seconds per stage)
-  React.useEffect(() => {
-    const stages: DeliveryStage[] = [
-      'preparing',
-      'robot_assigned',
-      'picking_up',
-      'at_pickup',
-      'picked_up',
-      'delivering',
-      'at_delivery'
-    ]
-    
-    const currentIndex = stages.indexOf(currentStage)
-    
-    // Don't auto-progress if at delivery or delivered
-    if (currentStage === 'at_delivery' || currentStage === 'delivered') {
-      return
-    }
-    
-    // Progress to next stage after random 3-5 seconds
-    const delay = Math.random() * 2000 + 3000 // 3000-5000ms
-    const timer = setTimeout(() => {
-      if (currentIndex < stages.length - 1) {
-        setCurrentStage(stages[currentIndex + 1])
-      }
-    }, delay)
-    
-    return () => clearTimeout(timer)
-  }, [currentStage])
-
   const handleCompleteOrder = () => {
-    if (!currentOrder) return
+    if (!displayOrder) return
     
     setIsCompleting(true)
     
     // Simulate completion - mark as delivered but stay on page
     setTimeout(() => {
-      completeOrder(currentOrder.id)
+      completeOrder(displayOrder.id)
       setCurrentStage('delivered')
       setIsCompleting(false)
     }, 1000)
@@ -249,9 +282,9 @@ const TrackingSection: React.FC<TrackingSectionProps> = () => {
           </div>
           
           {/* Order ID Badge */}
-          {currentOrder && (
+          {displayOrder && (
             <div className="ml-4 bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap">
-              #{currentOrder.id.slice(-6)}
+              {formatOrderId(displayOrder.externalId || displayOrder.id)}
             </div>
           )}
         </div>
@@ -338,12 +371,12 @@ const TrackingSection: React.FC<TrackingSectionProps> = () => {
             </div>
 
             {/* Phone Number Display */}
-            {currentOrder && (
+            {displayOrder && (
               <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 mb-6 border border-white/20">
                 <div className="flex items-center justify-center gap-3">
                   <MessageSquare className="w-5 h-5 text-gray-200" />
                   <span className="text-lg font-bold text-white tracking-wider">
-                    {currentOrder.customerInfo.phone}
+                    {maskPhoneNumber(displayOrder.customerInfo.phone)}
                   </span>
                 </div>
               </div>
@@ -459,7 +492,7 @@ const TrackingSection: React.FC<TrackingSectionProps> = () => {
           </div>
 
           {/* Order Details Card */}
-          {currentOrder && (
+          {displayOrder && (
             <div className="bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 rounded-xl p-4 shadow-lg flex-shrink-0 w-full max-w-md">
               <div className="flex items-center gap-2.5 mb-3 pb-2.5 border-b border-gray-700">
                 <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center flex-shrink-0">
@@ -474,22 +507,34 @@ const TrackingSection: React.FC<TrackingSectionProps> = () => {
               </div>
               
               <div className="space-y-2.5">
+                {/* Order Code */}
+                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2.5 border border-gray-700">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-400">Mã đơn hàng:</span>
+                    <span className="text-sm font-bold text-white">{formatOrderId(displayOrder.externalId || displayOrder.id)}</span>
+                  </div>
+                </div>
+
                 {/* Customer Info */}
                 <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2.5 border border-gray-700">
                   <h4 className="text-xs font-semibold text-gray-300 mb-1.5 uppercase tracking-wide">Khách hàng</h4>
                   <div className="space-y-1">
                     <div className="flex justify-between items-center">
                       <span className="text-xs text-gray-400">Tên:</span>
-                      <span className="text-xs font-semibold text-white">{currentOrder.customerInfo.location}</span>
+                      <span className="text-xs font-semibold text-white">{displayOrder.customerInfo.name}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-gray-400">Địa chỉ:</span>
+                      <span className="text-xs font-semibold text-white">{displayOrder.customerInfo.location}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-xs text-gray-400">SĐT:</span>
-                      <span className="text-xs font-semibold text-white">{currentOrder.customerInfo.phone}</span>
+                      <span className="text-xs font-semibold text-white">{maskPhoneNumber(displayOrder.customerInfo.phone)}</span>
                     </div>
-                    {currentOrder.customerInfo.notes && (
+                    {displayOrder.customerInfo.notes && (
                       <div className="pt-1.5 mt-1.5 border-t border-gray-700">
                         <span className="text-xs text-gray-400">Ghi chú: </span>
-                        <span className="text-xs text-gray-200">{currentOrder.customerInfo.notes}</span>
+                        <span className="text-xs text-gray-200">{displayOrder.customerInfo.notes}</span>
                       </div>
                     )}
                   </div>
@@ -499,7 +544,7 @@ const TrackingSection: React.FC<TrackingSectionProps> = () => {
                 <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2.5 border border-gray-700">
                   <h4 className="text-xs font-semibold text-gray-300 mb-1.5 uppercase tracking-wide">Món ăn</h4>
                   <div className="space-y-1.5">
-                    {currentOrder.items.map((item, index) => (
+                    {displayOrder.items.map((item, index) => (
                       <div key={index} className="flex justify-between items-start gap-2">
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-medium text-white truncate">{item.name}</p>
@@ -516,27 +561,27 @@ const TrackingSection: React.FC<TrackingSectionProps> = () => {
                 </div>
 
                 {/* Price Summary */}
-                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2.5 border border-gray-700">
+                                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2.5 border border-gray-700">
                   <div className="space-y-1">
                     <div className="flex justify-between items-center">
                       <span className="text-xs text-gray-400">Tạm tính:</span>
                       <span className="text-xs text-gray-200">
-                        {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(currentOrder.subtotal)}
+                        {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(displayOrder.subtotal)}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-xs text-gray-400">Phí ship:</span>
                       <span className="text-xs text-gray-200">
-                        {currentOrder.deliveryFee === 0 
+                        {displayOrder.deliveryFee === 0 
                           ? 'Miễn phí' 
-                          : new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(currentOrder.deliveryFee)
+                          : new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(displayOrder.deliveryFee)
                         }
                       </span>
                     </div>
                     <div className="pt-1.5 mt-1.5 border-t border-gray-700 flex justify-between items-center">
                       <span className="text-sm font-bold text-white">Tổng:</span>
                       <span className="text-base font-bold text-white">
-                        {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(currentOrder.total)}
+                        {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(displayOrder.total)}
                       </span>
                     </div>
                   </div>

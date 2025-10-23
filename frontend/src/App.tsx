@@ -6,6 +6,8 @@ import TrackingSection from './components/sections/TrackingSection';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import AuthLandingPage from './pages/AuthLandingPage';
+import TestOrderPage from './pages/TestOrderPage';
+import TokenUpdatePage from './pages/TokenUpdatePage';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
@@ -87,6 +89,12 @@ const AppContent: React.FC = () => {
         <Route path="/auth" element={<AuthLandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        
+        {/* Test Route - without Layout */}
+        <Route path="/test-order" element={<TestOrderPage />} />
+        
+        {/* Token Management - without Layout */}
+        <Route path="/token-update" element={<TokenUpdatePage />} />
         
         {/* Main App Routes - with Layout */}
         <Route path="/*" element={

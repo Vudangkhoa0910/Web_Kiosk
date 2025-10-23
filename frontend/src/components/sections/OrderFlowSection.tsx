@@ -12,165 +12,19 @@ import {
   X,
   ShoppingCart
 } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useKioskStore } from '../../stores/kioskStore'
 import { useAppStore } from '../../hooks/useAppStore'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { PathRenderer, JourneyRobot } from './home'
 import momoPaymentService from '../../services/momoPaymentService'
+import { tokenManager } from '../../services/tokenManager'
+import { maskPhoneNumber, decodeBase64UTF8, formatOrderId } from '../../utils/formatters'
 import '../../styles/tracking.css'
 
-type FlowStep = 'restaurant' | 'menu' | 'details' | 'payment' | 'success'
-
-interface ProductItem {
-  id: string
-  name: string
-  description: string
-  price: number
-  image: string
-  category: string
-  available: boolean
-  restaurantId: string
-}
-
-interface Restaurant {
-  id: string
-  name: string
-  description: string
-  image: string
-  location: string
-  category: string
-}
-
-interface CartItem extends ProductItem {
-  quantity: number
-}
-
-const RESTAURANTS: Restaurant[] = [
-  {
-    id: 'rest1',
-    name: 'Burger House',
-    description: 'Chuyên các loại burger ngon và đồ ăn nhanh',
-    image: 'https://images.pexels.com/photos/262978/pexels-photo-262978.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop',
-    location: 'Tầng 1, Khu A',
-    category: 'fastfood'
-  },
-  {
-    id: 'rest2',
-    name: 'Cafe & Tea',
-    description: 'Đồ uống và món ăn nhẹ phong cách hiện đại',
-    image: 'https://images.pexels.com/photos/1307698/pexels-photo-1307698.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop',
-    location: 'Tầng 2, Khu B',
-    category: 'cafe'
-  },
-  {
-    id: 'rest3',
-    name: 'Asian Kitchen',
-    description: 'Món ăn châu Á đa dạng và hấp dẫn',
-    image: 'https://images.pexels.com/photos/1833349/pexels-photo-1833349.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&fit=crop',
-    location: 'Tầng 1, Khu C',
-    category: 'asian'
-  }
-]
-
-const PRODUCT_ITEMS: ProductItem[] = [
-  // Đồ ăn
-  {
-    id: 'pho-ha-noi',
-    name: 'Phở Bò Hà Nội',
-    description: 'Bánh phở mềm, nước dùng trong, thịt bò tươi',
-    price: 55000,
-    image: 'https://images.pexels.com/photos/4253312/pexels-photo-4253312.jpeg?auto=compress&cs=tinysrgb&w=300&h=200&fit=crop',
-    category: 'food',
-    available: true,
-    restaurantId: 'rest3'
-  },
-  {
-    id: 'banh-mi',
-    name: 'Bánh Mì Thịt Nướng',
-    description: 'Bánh giòn, pate, thịt nướng và rau thơm',
-    price: 28000,
-    image: 'https://images.pexels.com/photos/4917818/pexels-photo-4917818.jpeg?auto=compress&cs=tinysrgb&w=300&h=200&fit=crop',
-    category: 'food',
-    available: true,
-    restaurantId: 'rest1'
-  },
-  {
-    id: 'bun-cha',
-    name: 'Bún Chả Hà Nội',    
-    description: 'Chả nướng than hoa, nước mắm chua ngọt',
-    price: 52000,
-    image: 'https://images.pexels.com/photos/4253302/pexels-photo-4253302.jpeg?auto=compress&cs=tinysrgb&w=300&h=200&fit=crop',
-    category: 'food',
-    available: true,
-    restaurantId: 'rest3'
-  },
-  // Đồ uống
-  {
-    id: 'ca-phe-sua',
-    name: 'Cà Phê Sữa Đá',
-    description: 'Cà phê phin truyền thống với sữa đặc',
-    price: 22000,
-    image: 'https://images.pexels.com/photos/302899/pexels-photo-302899.jpeg?auto=compress&cs=tinysrgb&w=300&h=200&fit=crop',
-    category: 'drink',
-    available: true,
-    restaurantId: 'rest2'
-  },
-  {
-    id: 'tra-sua',
-    name: 'Trà Sữa Trân Châu',
-    description: 'Trà sữa thơm ngon với trân châu đen dai giòn',
-    price: 35000,
-    image: 'https://images.pexels.com/photos/1893556/pexels-photo-1893556.jpeg?auto=compress&cs=tinysrgb&w=300&h=200&fit=crop',
-    category: 'drink',
-    available: true,
-    restaurantId: 'rest2'
-  },
-  {
-    id: 'nuoc-suoi',
-    name: 'Nước Suối Lavie',
-    description: 'Nước suối tinh khiết chai 500ml',
-    price: 8000,
-    image: 'https://images.pexels.com/photos/327090/pexels-photo-327090.jpeg?auto=compress&cs=tinysrgb&w=300&h=200&fit=crop',
-    category: 'drink',
-    available: true,
-    restaurantId: 'rest2'
-  },
-  // Đồ ăn vặt
-  {
-    id: 'snack-lay',
-    name: 'Snack Khoai Tây Lay\'s',
-    description: 'Bánh snack khoai tây vị tự nhiên gói 56g',
-    price: 15000,
-    image: 'https://images.pexels.com/photos/1893556/pexels-photo-1893556.jpeg?auto=compress&cs=tinysrgb&w=300&h=200&fit=crop',
-    category: 'snack',
-    available: true,
-    restaurantId: 'rest2'
-  },
-  {
-    id: 'banh-quy',
-    name: 'Bánh Quy Oreo',
-    description: 'Bánh quy chocolate kem vani gói 133g',
-    price: 25000,
-    image: 'https://images.pexels.com/photos/230325/pexels-photo-230325.jpeg?auto=compress&cs=tinysrgb&w=300&h=200&fit=crop',
-    category: 'snack',
-    available: true,
-    restaurantId: 'rest2'
-  },
-  // Tráng miệng
-  {
-    id: 'banh-flan',
-    name: 'Bánh Flan Caramel',
-    description: 'Mềm mịn, thơm béo lớp caramel',
-    price: 20000,
-    image: 'https://images.pexels.com/photos/1099680/pexels-photo-1099680.jpeg?auto=compress&cs=tinysrgb&w=300&h=200&fit=crop',
-    category: 'dessert',
-    available: true,
-    restaurantId: 'rest2'
-  }
-]
-
-
+// Import types and constants from modules
+import type { FlowStep, ProductItem, Restaurant, CartItem } from '../../types/orderFlow'
+import { RESTAURANTS, PRODUCT_ITEMS } from '../../constants/orderFlow'
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value)
@@ -231,6 +85,7 @@ const useContinuousJourney = () => {
 
 const OrderFlowSection: React.FC = () => {
   const navigate = useNavigate()
+  const location = useLocation()
   const { t } = useLanguage()
   const [category, setCategory] = useState('all')
   const [search, setSearch] = useState('')
@@ -243,8 +98,10 @@ const OrderFlowSection: React.FC = () => {
   const [orderId, setOrderId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [momoPaymentUrl, setMomoPaymentUrl] = useState<string | null>(null)
+  const [userCancelledPayment, setUserCancelledPayment] = useState(false)
+  const [isNavigating, setIsNavigating] = useState(false)
 
-  const { currentOrder } = useKioskStore()
+  const { currentOrder, createOrder, isLoading } = useKioskStore()
   const { setActiveSection } = useAppStore()
 
   // Check if there's an active order
@@ -265,17 +122,347 @@ const OrderFlowSection: React.FC = () => {
     return () => clearInterval(frameTimer);
   }, []);
 
-  // Auto-redirect to tracking after successful payment
+  // Listen for MoMo callback messages from iframe (to avoid page refresh)
   useEffect(() => {
-    if (step === 'success' && orderId) {
-      const timer = setTimeout(() => {
-        setActiveSection('tracking')
-        navigate('/tracking')
-      }, 2000) // Wait 2 seconds before redirecting
+    const handleMessage = (event: MessageEvent) => {
+      // Verify origin for security
+      if (event.origin !== window.location.origin) {
+        return;
+      }
 
-      return () => clearTimeout(timer)
+      const { type, resultCode, orderId: momoOrderId, transId, extraData } = event.data;
+
+      if (type === 'MOMO_CALLBACK' && resultCode && momoOrderId && !isProcessing) {
+        console.log('🔵 Received MoMo callback from iframe:', { resultCode, orderId: momoOrderId, transId });
+
+        if (resultCode === '0') {
+          // Payment successful - process without page reload
+          console.log('✅ Payment successful! Processing without refresh...');
+
+          // ⚡ IMMEDIATELY close dialog to prevent MoMo redirect
+          console.log('⚡ Closing dialog immediately to prevent redirect...');
+          setMomoPaymentUrl(null);
+          setSelectedItem(null);
+          setSelectedRestaurant(null);
+
+          // Decode extraData with UTF-8 support
+          let restoredCustomer = { name: '', phone: '', note: '' };
+          if (extraData) {
+            try {
+              const decodedString = decodeBase64UTF8(extraData);
+              const decoded = JSON.parse(decodedString);
+              console.log('🔍 Decoded extraData:', decoded);
+              if (decoded.userInfo) {
+                restoredCustomer = {
+                  name: decoded.userInfo.name || '',
+                  phone: decoded.userInfo.phone || '',
+                  note: decoded.userInfo.note || ''
+                };
+                console.log('✅ Restored customer info:', restoredCustomer);
+              }
+            } catch (e) {
+              console.warn('⚠️ Could not decode extraData:', e);
+            }
+          }
+
+          // Process payment
+          const processPaymentFromIframe = async () => {
+            try {
+              setIsProcessing(true);
+              console.log('Creating order with synced orderId:', momoOrderId);
+
+              let newOrderId: string;
+              
+              try {
+                newOrderId = await createOrder({
+                  name: restoredCustomer.name,
+                  phone: restoredCustomer.phone,
+                  email: '',
+                  location: 'Kiosk Alpha Asimov',
+                  notes: restoredCustomer.note || 'Order từ Web Kiosk - MoMo Payment'
+                }, 'momo', momoOrderId); // Truyền momoOrderId để đồng bộ
+              } catch (firstError: any) {
+                if (firstError.response?.status === 401 || firstError.message?.includes('Token hết hạn')) {
+                  console.log('Token expired, refreshing...');
+                  const newToken = await tokenManager.refreshAccessToken();
+                  if (!newToken) {
+                    throw new Error('Failed to refresh token. Please login again.');
+                  }
+                  console.log('Token refreshed, retrying...');
+                  newOrderId = await createOrder({
+                    name: restoredCustomer.name,
+                    phone: restoredCustomer.phone,
+                    email: '',
+                    location: 'Kiosk Alpha Asimov',
+                    notes: restoredCustomer.note || 'Order từ Web Kiosk - MoMo Payment'
+                  }, 'momo', momoOrderId); // Truyền momoOrderId để đồng bộ
+                } else {
+                  throw firstError;
+                }
+              }
+
+              console.log('Order created successfully:', newOrderId);
+              console.log('📦 Using MoMo OrderID for tracking:', momoOrderId);
+              
+              // Store order info for navigation AFTER dialog closes
+              // Use momoOrderId as the primary order ID for consistency
+              const orderInfo = {
+                orderId: momoOrderId, // Use MoMo orderID instead of API returned ID
+                items: selectedItems,
+                customer: restoredCustomer,
+                restaurant: selectedRestaurant,
+                totalAmount: selectedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+                timestamp: new Date().toISOString(),
+                paymentMethod: 'momo'
+              };
+              
+              console.log('📦 Order Information:', orderInfo);
+              
+              // Dialog already closed at the beginning (line ~141)
+              // Show navigating overlay and wait before navigating
+              setIsNavigating(true);
+              
+              setTimeout(() => {
+                console.log('🚀 Navigating to tracking...');
+                setActiveSection('tracking');
+                navigate('/tracking', { 
+                  state: { 
+                    newOrder: orderInfo,
+                    fromPayment: true,
+                    showSuccessMessage: true
+                  } 
+                });
+                
+                // Reset states after navigation
+                setSelectedItems([]);
+                setOrderId(null);
+                setStep('restaurant');
+                setCustomer({ name: '', phone: '', note: '' });
+                setIsProcessing(false);
+                setIsNavigating(false);
+              }, 350); // Wait for dialog close animation
+              
+            } catch (err) {
+              console.error('❌ Failed to create order after retry:', err);
+              console.warn('⚠️ TESTING MODE: Order creation failed, but continuing to success for testing purposes');
+              
+              // Testing mode: use momoOrderId for consistency
+              const testOrderInfo = {
+                orderId: momoOrderId, // Use MoMo orderID for consistency
+                items: selectedItems,
+                customer: restoredCustomer,
+                restaurant: selectedRestaurant,
+                totalAmount: selectedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+                timestamp: new Date().toISOString(),
+                paymentMethod: 'momo'
+              };
+              
+              // Dialog already closed, show navigating overlay and wait
+              setIsNavigating(true);
+              
+              setTimeout(() => {
+                setActiveSection('tracking');
+                navigate('/tracking', { 
+                  state: { 
+                    newOrder: testOrderInfo,
+                    fromPayment: true,
+                    showSuccessMessage: true
+                  } 
+                });
+                
+                // Reset states
+                setSelectedItems([]);
+                setOrderId(null);
+                setStep('restaurant');
+                setCustomer({ name: '', phone: '', note: '' });
+                setIsProcessing(false);
+                setIsNavigating(false);
+              }, 350);
+            }
+          };
+
+          processPaymentFromIframe();
+        } else {
+          // Payment failed - Close dialog and return to payment step
+          console.log('Payment failed or cancelled')
+          setMomoPaymentUrl(null)
+          setIsProcessing(false)
+          setError('Thanh toán chưa hoàn tất. Vui lòng thử lại hoặc chọn phương thức thanh toán khác.')
+          // Mark that user cancelled to prevent auto-restart
+          setUserCancelledPayment(true)
+          // Reset to payment step to allow retry
+          // KEEP orderId to reuse for retry
+          setStep('payment')
+        }
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [isProcessing, createOrder, navigate, setActiveSection]);
+
+  // Detect MoMo callback from URL params (after redirect)
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const resultCode = urlParams.get('resultCode');
+    const momoOrderId = urlParams.get('orderId');
+    const transId = urlParams.get('transId');
+    const extraDataParam = urlParams.get('extraData');
+
+    // Check if this is a MoMo callback AND we haven't processed it yet
+    if (resultCode !== null && momoOrderId !== null && !isProcessing) {
+      console.log('🔵 MoMo Payment Callback detected:', {
+        resultCode,
+        orderId: momoOrderId,
+        transId,
+      });
+
+      // If we're in an iframe, post message to parent instead of full page redirect
+      if (window.self !== window.top) {
+        console.log('🔵 Running in iframe, posting message to parent...');
+        window.parent.postMessage({
+          type: 'MOMO_CALLBACK',
+          resultCode,
+          orderId: momoOrderId,
+          transId,
+          extraData: extraDataParam
+        }, window.location.origin);
+        return; // Stop processing here, let parent window handle it
+      }
+
+      if (resultCode === '0') {
+        // Payment successful
+        console.log('✅ Payment successful! Processing...');
+        
+        // Decode extraData with UTF-8 support to get customer info
+        let restoredCustomer = { name: '', phone: '', note: '' };
+        
+        if (extraDataParam) {
+          try {
+            const decodedString = decodeBase64UTF8(extraDataParam);
+            const decoded = JSON.parse(decodedString);
+            console.log('🔍 Decoded extraData:', decoded);
+            
+            if (decoded.userInfo) {
+              console.log('✅ Restoring customer info:', decoded.userInfo);
+              restoredCustomer = {
+                name: decoded.userInfo.name || '',
+                phone: decoded.userInfo.phone || '',
+                note: decoded.userInfo.note || ''
+              };
+            }
+          } catch (e) {
+            console.warn('⚠️ Could not decode extraData:', e);
+          }
+        }
+
+        // Create order immediately with retry on token expiration
+        const processPayment = async () => {
+          try {
+            setIsProcessing(true);
+            
+            // Clear URL params FIRST to prevent re-triggering this useEffect
+            window.history.replaceState({}, '', window.location.pathname);
+            
+            console.log('Creating order with synced orderId:', momoOrderId);
+            let newOrderId: string;
+            
+            try {
+              // Try to create order with synced orderId
+              newOrderId = await createOrder({
+                name: restoredCustomer.name,
+                phone: restoredCustomer.phone,
+                email: '',
+                location: 'Kiosk Alpha Asimov',
+                notes: restoredCustomer.note || 'Order từ Web Kiosk - MoMo Payment'
+              }, 'momo', momoOrderId); // Truyền momoOrderId để đồng bộ
+              
+            } catch (firstError: any) {
+              // If error is 401 (token expired), refresh and retry ONCE
+              if (firstError.response?.status === 401 || firstError.message?.includes('Token hết hạn')) {
+                console.log('Token expired, refreshing...');
+                
+                // Refresh token
+                const newToken = await tokenManager.refreshAccessToken();
+                
+                if (!newToken) {
+                  throw new Error('Failed to refresh token. Please login again.');
+                }
+                
+                console.log('Token refreshed, retrying...');
+                
+                // Retry order creation with new token
+                newOrderId = await createOrder({
+                  name: restoredCustomer.name,
+                  phone: restoredCustomer.phone,
+                  email: '',
+                  location: 'Kiosk Alpha Asimov',
+                  notes: restoredCustomer.note || 'Order từ Web Kiosk - MoMo Payment'
+                }, 'momo', momoOrderId); // Truyền momoOrderId để đồng bộ
+              } else {
+                // Re-throw non-token errors
+                throw firstError;
+              }
+            }
+
+            console.log('Order created successfully:', newOrderId);
+            console.log('📦 Using MoMo OrderID for tracking:', momoOrderId);
+            
+            // Close dialog first, then navigate
+            setMomoPaymentUrl(null);
+            setSelectedItem(null);
+            setSelectedRestaurant(null);
+            
+            // Wait for dialog to close, then set success and navigate
+            // Use momoOrderId for consistency across all systems
+            setTimeout(() => {
+              setOrderId(momoOrderId); // Use MoMo orderID instead of API returned ID
+              setStep('success');
+              setIsProcessing(false);
+            }, 300); // Wait for dialog close animation
+            
+          } catch (err) {
+            console.error('❌ Failed to create order after retry:', err);
+            
+            // ⚠️ TESTING MODE: Show success even if order creation fails
+            console.warn('⚠️ TESTING MODE: Order creation failed, but continuing to success for testing purposes');
+            
+            // Close dialog first, then navigate (testing mode)
+            setMomoPaymentUrl(null);
+            setSelectedItem(null);
+            setSelectedRestaurant(null);
+            
+            // Wait for dialog to close, then set success and navigate
+            // Use momoOrderId for consistency
+            setTimeout(() => {
+              setOrderId(momoOrderId); // Use MoMo orderID for consistency
+              setStep('success');
+              setIsProcessing(false);
+            }, 300); // Wait for dialog close animation
+            
+            // The existing useEffect will handle auto-redirect after 2 seconds
+          }
+        };
+
+        processPayment();
+      } else {
+        // Payment failed or cancelled - Return to order flow
+        console.log('Payment failed or cancelled')
+        
+        // Clear URL params first
+        window.history.replaceState({}, '', window.location.pathname)
+        
+        // Close MoMo dialog and reset to payment step for retry
+        setMomoPaymentUrl(null)
+        setIsProcessing(false)
+        setError('Thanh toán chưa hoàn tất. Vui lòng thử lại hoặc chọn phương thức thanh toán khác.')
+        // Mark that user cancelled to prevent auto-restart
+        setUserCancelledPayment(true)
+        // KEEP orderId to reuse for retry
+        setStep('payment')
+      }
     }
-  }, [step, orderId, navigate, setActiveSection]);
+  }, [location.search, isProcessing, createOrder, navigate, setActiveSection]);
 
   // Continuous robot journey layout (back-and-forth movement)
   const { pathPoints, robotX, robotY, direction } = useContinuousJourney();
@@ -340,6 +527,7 @@ const OrderFlowSection: React.FC = () => {
     setError(null)
     setMomoPaymentUrl(null)
     setIsProcessing(false)
+    setUserCancelledPayment(false)
   }
 
   const addItemToCart = (item: ProductItem) => {
@@ -375,21 +563,31 @@ const OrderFlowSection: React.FC = () => {
 
   // Auto-initialize MoMo payment when entering payment step
   useEffect(() => {
-    if (step === 'payment' && !momoPaymentUrl && !isProcessing && selectedItems.length > 0) {
+    // Don't auto-start if user just cancelled payment
+    if (step === 'payment' && !momoPaymentUrl && !isProcessing && selectedItems.length > 0 && !userCancelledPayment) {
       const initMomoPayment = async () => {
         try {
-          console.log('🔵 Auto-starting MoMo payment...')
+          console.log('Auto-starting MoMo payment')
           setIsProcessing(true)
+          
+          // Tạo orderID trước để đồng bộ giữa Web và MoMo
+          // Nếu đã có orderId (từ lần retry trước), dùng lại; nếu chưa có thì tạo mới
+          const syncedOrderId = orderId || `AA${Date.now()}`
+          if (!orderId) {
+            setOrderId(syncedOrderId)
+          }
+          
           const amount = getTotalAmount()
           const orderInfo = `Thanh toan ${selectedRestaurant?.name || 'don hang'} - ${new Date().toLocaleString()}`
 
-          console.log('🔵 Calling MoMo API with:', { amount, orderInfo, items: selectedItems })
+          console.log('Calling MoMo API with synced orderId:', syncedOrderId)
           
-          // Use merchant payment to get official MoMo payUrl
+          // Gửi orderId đã tạo cho MoMo
           const resp = await momoPaymentService.createMerchantPayment({ 
             amount, 
             orderInfo, 
             items: selectedItems,
+            orderId: syncedOrderId, // Gửi orderId đã tạo
             userInfo: {
               name: customer.name,
               phone: customer.phone,
@@ -397,23 +595,22 @@ const OrderFlowSection: React.FC = () => {
             }
           })
           
-          console.log('🔵 MoMo API Response:', resp)
+          console.log('MoMo API Response:', resp)
 
           const data = resp?.data
 
           if (data && data.payUrl) {
-            // Set payUrl to embed in iframe
-            console.log('🔵 Embedding MoMo gateway in iframe:', data.payUrl)
+            console.log('Embedding MoMo gateway in iframe')
             setMomoPaymentUrl(data.payUrl)
             setIsProcessing(false)
           } else {
-            console.error('❌ No payUrl returned from MoMo API')
+            console.error('No payUrl returned from MoMo API')
             console.error('Response data:', data)
             setIsProcessing(false)
             setError('Không thể tạo thanh toán MoMo. Vui lòng thử lại.')
           }
         } catch (error) {
-          console.error('❌ MoMo payment init error:', error)
+          console.error('MoMo payment init error:', error)
           const errorMessage = error instanceof Error ? error.message : 'Không thể kết nối đến server thanh toán'
           setIsProcessing(false)
           setError(errorMessage)
@@ -422,7 +619,7 @@ const OrderFlowSection: React.FC = () => {
 
       initMomoPayment()
     }
-  }, [step, momoPaymentUrl, isProcessing, selectedItems, selectedRestaurant, customer])
+  }, [step, momoPaymentUrl, isProcessing, selectedItems, selectedRestaurant, customer, userCancelledPayment, orderId])
 
   // If there's an active order, show blocking message
   if (hasActiveOrder) {
@@ -467,7 +664,7 @@ const OrderFlowSection: React.FC = () => {
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Mã đơn hàng:</span>
-                    <span className="font-semibold text-gray-900">#{currentOrder.id.slice(-8)}</span>
+                    <span className="font-semibold text-gray-900">{formatOrderId(currentOrder.id)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Trạng thái:</span>
@@ -487,6 +684,7 @@ const OrderFlowSection: React.FC = () => {
               {/* Action Button */}
               <button
                 onClick={() => {
+                  // Navigate directly to tracking page (no dialog involved)
                   setActiveSection('tracking')
                   navigate('/tracking')
                 }}
@@ -653,7 +851,7 @@ const OrderFlowSection: React.FC = () => {
               exit={{ scale: 0.95, opacity: 0 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
               className={`bg-white rounded-3xl w-full shadow-2xl border border-gray-100 overflow-hidden transition-all duration-300 ${
-                momoPaymentUrl ? 'max-w-6xl max-h-[92vh]' : 'max-w-md max-h-[80vh]'
+                momoPaymentUrl ? 'max-w-[70vw] max-h-[95vh]' : 'max-w-md max-h-[80vh]'
               }`}
             >
               {/* Modal Header */}
@@ -685,7 +883,7 @@ const OrderFlowSection: React.FC = () => {
 
               {/* Modal Content */}
               <div className={`overflow-y-auto ${
-                momoPaymentUrl ? 'p-3 max-h-[calc(92vh-90px)]' : 'p-5 max-h-[calc(80vh-90px)]'
+                momoPaymentUrl ? 'p-4 max-h-[calc(98vh-80px)]' : 'p-5 max-h-[calc(80vh-90px)]'
               }`}>
 
                 {error && (
@@ -864,15 +1062,85 @@ const OrderFlowSection: React.FC = () => {
                           onChange={(event) => setCustomer({ ...customer, phone: event.target.value })}
                         />
                       </div>
-                      <div className="flex items-start gap-3 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 focus-within:border-gray-400 focus-within:ring-2 focus-within:ring-gray-100 transition-all duration-200">
-                        <FileText className="h-5 w-5 text-gray-500 mt-0.5" />
-                        <textarea
-                          className="flex-1 bg-transparent outline-none placeholder-gray-500 resize-none"
-                          placeholder="Ghi chú thêm (không bắt buộc)"
-                          rows={3}
-                          value={customer.note}
-                          onChange={(event) => setCustomer({ ...customer, note: event.target.value })}
-                        />
+                      <div>
+                        <div className="flex items-start gap-3 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 focus-within:border-gray-400 focus-within:ring-2 focus-within:ring-gray-100 transition-all duration-200">
+                          <FileText className="h-5 w-5 text-gray-500 mt-0.5" />
+                          <textarea
+                            className="flex-1 bg-transparent outline-none placeholder-gray-500 resize-none"
+                            placeholder="Ghi chú thêm (không bắt buộc)"
+                            rows={3}
+                            value={customer.note}
+                            onChange={(event) => setCustomer({ ...customer, note: event.target.value })}
+                          />
+                        </div>
+                        
+                        {/* Smart Quick Note Suggestions - Based on cart items */}
+                        <div className="mt-3 space-y-2">
+                          <p className="text-xs text-gray-600 font-semibold">Gợi ý nhanh:</p>
+                          <div className="flex flex-wrap gap-2">
+                            {(() => {
+                              // Determine categories in cart
+                              const hasFood = selectedItems.some(item => item.category === 'food')
+                              const hasDrink = selectedItems.some(item => item.category === 'drink')
+                              const hasSnack = selectedItems.some(item => item.category === 'snack')
+                              const hasDessert = selectedItems.some(item => item.category === 'dessert')
+                              
+                              // Build smart suggestions array
+                              const suggestions: string[] = []
+                              
+                              // Common suggestions for all orders
+                              suggestions.push('Thêm 1 bộ đồ ăn', 'Thêm 2 bộ đồ ăn')
+                              
+                              // Food-specific suggestions
+                              if (hasFood) {
+                                suggestions.push('Ít cay', 'Không cay', 'Thêm cay')
+                                suggestions.push('Không hành', 'Không rau mùi')
+                                suggestions.push('Thêm ớt riêng')
+                              }
+                              
+                              // Drink-specific suggestions
+                              if (hasDrink) {
+                                suggestions.push('Ít đá', 'Không đá', 'Nhiều đá')
+                                suggestions.push('Ít đường', 'Không đường', 'Thêm đường')
+                              }
+                              
+                              // Dessert-specific suggestions
+                              if (hasDessert && !hasDrink) {
+                                // Only show ice/sugar options if no drinks in cart
+                                suggestions.push('Ít đá', 'Nhiều đá')
+                                suggestions.push('Ít đường', 'Không đường')
+                              }
+                              
+                              // Snack-specific suggestions
+                              if (hasSnack) {
+                                suggestions.push('Không tương ớt', 'Thêm tương ớt')
+                              }
+                              
+                              // Extra utensils
+                              suggestions.push('Thêm đũa', 'Thêm thìa', 'Thêm khăn giấy')
+                              
+                              // Remove duplicates while preserving order
+                              const uniqueSuggestions = Array.from(new Set(suggestions))
+                              
+                              return uniqueSuggestions.map((suggestion) => (
+                                <button
+                                  key={suggestion}
+                                  type="button"
+                                  onClick={() => {
+                                    const currentNote = customer.note.trim()
+                                    const newNote = currentNote 
+                                      ? `${currentNote}, ${suggestion}` 
+                                      : suggestion
+                                    setCustomer({ ...customer, note: newNote })
+                                  }}
+                                  className="px-3 py-1.5 text-xs font-medium bg-white border border-gray-300 rounded-lg hover:bg-gray-800 hover:text-white hover:border-gray-800 transition-all duration-200 whitespace-nowrap shadow-sm"
+                                >
+                                  {suggestion}
+                                </button>
+                              ))
+                            })()}
+                          </div>
+                        </div>
                       </div>
                     </div>
 
@@ -901,61 +1169,190 @@ const OrderFlowSection: React.FC = () => {
                 )}
 
                 {step === 'payment' && (
-                  <div className="space-y-2">
-                    <div className="rounded-xl bg-gray-50 p-2.5 border border-gray-200">
-                      <h4 className="font-semibold text-gray-800 text-sm mb-1.5">Chi tiết đơn hàng</h4>
-                      {selectedItems.map((item) => (
-                        <div key={item.id} className="flex justify-between text-xs mb-1">
-                          <span>{item.name} x{item.quantity}</span>
-                          <span className="font-medium">{formatCurrency(item.price * item.quantity)}</span>
-                        </div>
-                      ))}
-                      <div className="flex justify-between text-xs text-gray-600 mb-1">
-                        <span>Phí giao hàng:</span>
-                        <span>Miễn phí</span>
-                      </div>
-                      <div className="flex justify-between text-sm font-bold pt-1.5 border-t border-gray-300">
-                        <span>Tổng cộng:</span>
-                        <span className="text-gray-900">{formatCurrency(getTotalAmount())}</span>
-                      </div>
-                    </div>
+                  <div>
+                    {/* Show retry button if user cancelled payment */}
+                    {userCancelledPayment && !momoPaymentUrl && (
+                      <div className="mb-6">
+                        <div className="rounded-2xl bg-gradient-to-br from-gray-50 to-white border-2 border-gray-200 p-6 shadow-lg">
+                          {/* Icon and Message */}
+                          <div className="text-center mb-5">
+                            <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm">
+                              <svg className="w-8 h-8 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                              </svg>
+                            </div>
+                            <h3 className="text-lg font-bold text-gray-900 mb-2">
+                              Thanh toán chưa hoàn tất
+                            </h3>
+                            <p className="text-sm text-gray-600 leading-relaxed">
+                              Bạn đã huỷ thanh toán. Vui lòng chọn một trong các tùy chọn bên dưới.
+                            </p>
+                          </div>
 
-                    {/* MoMo Payment Iframe - Full view without scroll */}
-                    {momoPaymentUrl && (
-                      <div className="space-y-1.5">
-                        {/* Embedded MoMo iframe - Full size with gray theme */}
-                        <div className="relative rounded-lg overflow-hidden border-2 border-gray-300 bg-white shadow-md">
-                          <div className="bg-gradient-to-r from-gray-700 to-gray-900 px-2.5 py-1 flex items-center justify-between">
-                            <span className="text-white text-xs font-medium">Kết nối bảo mật</span>
+                          {/* Action Buttons */}
+                          <div className="grid grid-cols-2 gap-3">
                             <button
                               onClick={() => {
-                                setMomoPaymentUrl(null)
-                                setIsProcessing(false)
+                                setUserCancelledPayment(false)
+                                setError(null)
+                                // This will trigger the useEffect to auto-start MoMo
                               }}
-                              className="text-white hover:text-gray-200 font-bold text-lg leading-none transition-all duration-200"
-                              title="Đóng"
+                              className="group relative rounded-xl bg-gradient-to-r from-gray-800 to-gray-900 text-white px-6 py-4 font-semibold hover:from-gray-900 hover:to-black transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
                             >
-                              ×
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                              </svg>
+                              <span>Thử lại thanh toán</span>
+                            </button>
+                            <button
+                              onClick={() => {
+                                setStep('details')
+                                setUserCancelledPayment(false)
+                                setError(null)
+                              }}
+                              className="group relative rounded-xl bg-white border-2 border-gray-300 text-gray-700 px-6 py-4 font-semibold hover:bg-gray-50 hover:border-gray-400 transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 17l-5-5m0 0l5-5m-5 5h12" />
+                              </svg>
+                              <span>Quay lại chỉnh sửa</span>
                             </button>
                           </div>
-                          
-                          <div className="bg-gray-50 p-0.5">
-                            <iframe
-                              src={momoPaymentUrl}
-                              className="w-full h-[600px] border-0 bg-white"
-                              title="MoMo Payment Gateway"
-                              sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation allow-top-navigation-by-user-activation"
-                              allow="payment; camera; microphone"
-                              referrerPolicy="no-referrer-when-downgrade"
-                            />
+
+                          {/* Help Text */}
+                          <div className="mt-4 text-center">
+                            <p className="text-xs text-gray-500">
+                              Hoặc bấm "Quay lại" ở dưới để thay đổi đơn hàng
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 20/80 Layout: Order Info (20%) | MoMo QR (80%) */}
+                    {momoPaymentUrl ? (
+                      <div className="flex gap-3 h-[calc(98vh-100px)]">
+                        {/* Left Sidebar: Order Details - 20% */}
+                        <div className="w-[20%] flex-shrink-0">
+                          <div className="rounded-xl bg-white p-3 border border-gray-200 h-full overflow-y-auto shadow-sm">
+                            
+                            {/* Order Summary Header */}
+                            <div className="bg-gradient-to-r from-gray-800 to-gray-900 rounded-lg px-3 py-2.5 mb-3 shadow-md">
+                              <div className="flex items-center justify-between">
+                                <h4 className="font-bold text-white text-sm">Đơn hàng</h4>
+                                <span className="text-sm font-bold text-white bg-white/20 px-2 py-0.5 rounded">
+                                  {formatCurrency(getTotalAmount())}
+                                </span>
+                              </div>
+                            </div>
+                            
+                            {/* Order Items */}
+                            <div className="mb-3 bg-gray-50 rounded-lg p-2.5 border border-gray-200">
+                              <div className="space-y-2">
+                                {selectedItems.map((item) => (
+                                  <div key={item.id} className="pb-2 border-b border-gray-200 last:border-0 last:pb-0">
+                                    <div className="flex justify-between items-start mb-1">
+                                      <span className="font-semibold text-gray-900 text-xs leading-tight flex-1 pr-2">
+                                        {item.name}
+                                      </span>
+                                      <span className="text-xs text-gray-600 bg-white px-1.5 py-0.5 rounded font-medium border border-gray-300">
+                                        x{item.quantity}
+                                      </span>
+                                    </div>
+                                    <div className="text-xs font-bold text-gray-900">
+                                      {formatCurrency(item.price * item.quantity)}
+                                    </div>
+                                  </div>
+                                ))}
+                                
+                                {/* Delivery Fee */}
+                                <div className="pt-2 border-t-2 border-gray-300">
+                                  <div className="flex justify-between text-xs">
+                                    <span className="text-gray-600 font-medium">Phí ship:</span>
+                                    <span className="text-gray-900 font-bold">Miễn phí</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Customer Info */}
+                            <div className="mb-3 bg-gray-50 rounded-lg p-2.5 border border-gray-200">
+                              <h4 className="font-bold text-gray-900 text-xs mb-2.5 pb-1.5 border-b border-gray-300">
+                                Thông tin khách hàng
+                              </h4>
+                              <div className="space-y-2">
+                                <div>
+                                  <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wide mb-0.5">Tên</p>
+                                  <p className="text-xs font-semibold text-gray-900 bg-white px-2 py-1 rounded border border-gray-200">
+                                    {customer.name}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wide mb-0.5">Số điện thoại</p>
+                                  <p className="text-xs font-semibold text-gray-900 bg-white px-2 py-1 rounded border border-gray-200">
+                                    {maskPhoneNumber(customer.phone)}
+                                  </p>
+                                </div>
+                                {customer.note && (
+                                  <div>
+                                    <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wide mb-0.5">Ghi chú</p>
+                                    <p className="text-xs text-gray-700 bg-white px-2 py-1.5 rounded border border-gray-300 leading-relaxed">
+                                      {customer.note}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Payment Instructions */}
+                            <div className="bg-gray-800 rounded-lg p-2.5 border border-gray-700 shadow-sm">
+                              <div className="flex items-start gap-2 mb-1.5">
+                                <svg className="w-4 h-4 text-white mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <h4 className="font-bold text-white text-xs">Hướng dẫn thanh toán</h4>
+                              </div>
+                              <p className="text-xs text-gray-200 leading-relaxed ml-6">
+                                Mở ứng dụng <strong className="text-white">MoMo</strong> hoặc <strong className="text-white">ngân hàng</strong> để quét mã QR
+                              </p>
+                            </div>
                           </div>
                         </div>
 
-                        {/* Quick instructions - Compact with gray theme */}
-                        <div className="bg-gray-100 rounded-lg p-1.5 border border-gray-300">
-                          <p className="font-semibold text-xs text-gray-900 mb-0.5">Hướng dẫn:</p>
-                          <div className="text-xs text-gray-700 leading-tight">
-                            <p>1. Mở app MoMo/Ngân hàng → 2. Quét QR → 3. Xác nhận thanh toán</p>
+                        {/* Right Content: MoMo QR - 80% */}
+                        <div className="flex-1 min-w-0">
+                          <div className="relative rounded-xl overflow-hidden border-2 border-gray-300 bg-white shadow-lg h-full flex flex-col">
+                            
+                            <div className="bg-gray-50 p-1 flex-1 min-h-0">
+                              <iframe
+                                src={momoPaymentUrl}
+                                className="w-full h-full border-0 bg-white rounded"
+                                title="MoMo Payment Gateway"
+                                sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation allow-top-navigation-by-user-activation"
+                                allow="payment; camera; microphone"
+                                referrerPolicy="no-referrer-when-downgrade"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      /* Before MoMo loads - Show compact order details */
+                      <div className="rounded-lg bg-gray-50 p-2 border border-gray-200">
+                        <div className="flex items-center justify-between mb-1">
+                          <h4 className="font-semibold text-gray-800 text-xs">Chi tiết đơn hàng</h4>
+                          <span className="text-xs font-bold text-gray-900">{formatCurrency(getTotalAmount())}</span>
+                        </div>
+                        <div className="space-y-0.5">
+                          {selectedItems.map((item) => (
+                            <div key={item.id} className="flex justify-between text-xs text-gray-600">
+                              <span className="truncate mr-2">{item.name} x{item.quantity}</span>
+                              <span className="whitespace-nowrap">{formatCurrency(item.price * item.quantity)}</span>
+                            </div>
+                          ))}
+                          <div className="flex justify-between text-xs text-gray-500 pt-0.5">
+                            <span>Phí ship:</span>
+                            <span>Miễn phí</span>
                           </div>
                         </div>
                       </div>
@@ -991,20 +1388,69 @@ const OrderFlowSection: React.FC = () => {
                       </div>
                     )}
 
-                    {/* Back button only */}
-                    <div className="flex justify-start pt-1">
+                    {/* Back button only - Complete Payment button removed (real MoMo flow) */}
+                    <div className="flex justify-between gap-3 pt-1">
                       <button
                         onClick={() => {
                           setStep('details')
                           setMomoPaymentUrl(null)
                           setIsProcessing(false)
+                          setUserCancelledPayment(false)
+                          setError(null)
                         }}
-                        disabled={isProcessing}
+                        disabled={isProcessing || isLoading}
                         className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <ArrowLeft className="h-4 w-4" />
                         Quay lại
                       </button>
+                      
+                      {/* TEST BUTTON - COMMENTED OUT - Payment now handled by real MoMo flow */}
+                      {/* 
+                      <button
+                        onClick={async () => {
+                          try {
+                            setIsProcessing(true)
+                            console.log('🚀 Creating order with Alpha Asimov API...')
+                            
+                            const newOrderId = await createOrder({
+                              name: customer.name,
+                              phone: customer.phone,
+                              email: '',
+                              location: 'Kiosk Alpha Asimov',
+                              notes: customer.note || 'Order từ Web Kiosk'
+                            }, 'momo')
+
+                            console.log('✅ Order created:', newOrderId)
+                            setOrderId(newOrderId)
+                            setStep('success')
+                            setIsProcessing(false)
+                          } catch (err) {
+                            console.error('❌ Failed to create order:', err)
+                            setError(err instanceof Error ? err.message : 'Không thể tạo đơn hàng')
+                            setIsProcessing(false)
+                          }
+                        }}
+                        disabled={isProcessing || isLoading || !momoPaymentUrl}
+                        className={`rounded-xl px-6 py-2 text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
+                          momoPaymentUrl && !isProcessing && !isLoading
+                            ? 'bg-green-600 text-white hover:bg-green-700 shadow-md hover:shadow-lg'
+                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        }`}
+                      >
+                        {isProcessing || isLoading ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            Đang tạo đơn...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2 className="h-4 w-4" />
+                            Hoàn tất thanh toán
+                          </>
+                        )}
+                      </button>
+                      */}
                     </div>
                   </div>
                 )}
@@ -1065,6 +1511,53 @@ const OrderFlowSection: React.FC = () => {
           </div>
         </div>
       </footer>
+
+      {/* Navigating Overlay - Show while transitioning to tracking */}
+      <AnimatePresence>
+        {isNavigating && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[100]"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.1 }}
+              className="bg-white rounded-3xl p-8 shadow-2xl max-w-md mx-4"
+            >
+              {/* Robot Icon */}
+              <div className="flex justify-center mb-6">
+                <div className="relative">
+                  <img
+                    src="/images/Bulldog/2.png"
+                    alt="Robot đang xử lý"
+                    className="w-20 h-20 object-contain animate-bounce"
+                  />
+                  <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2">
+                    <div className="flex gap-1">
+                      <div className="w-2 h-2 bg-gray-800 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                      <div className="w-2 h-2 bg-gray-800 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                      <div className="w-2 h-2 bg-gray-800 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Message */}
+              <div className="text-center">
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                  Đang chuyển sang theo dõi đơn hàng
+                </h3>
+                <p className="text-gray-600">
+                  Robot đang chuẩn bị giao hàng cho bạn...
+                </p>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

@@ -296,6 +296,10 @@
     z-index: 1000;
   }
 
+  /*Giờ hãy thực hiện tối ưu các mã, hiện bị quá dài dù đã chia các module để dễ quản lý và sử dụng,
+  tối ưu các mã trong file không bị dài để dễ phát triển và bào trì. Phần log ra console cũng bỏ đi các icon để chuẩn
+  xác hơn. Mã nào không cần thiết thì nên xoá bỏ để giảm độ dài của mã*/
+
   .floating-action:hover {
     box-shadow: 0 12px 40px rgba(14, 165, 233, 0.5);
   }

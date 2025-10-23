@@ -10,6 +10,7 @@ interface MomoPaymentRequest {
   orderInfo?: string;
   items?: any[];
   userInfo?: any;
+  orderId?: string; // OrderID đã được tạo sẵn để đồng bộ
 }
 
 interface MomoPaymentResponse {

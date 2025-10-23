@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { kioskOrderService } from '../services/kioskOrderService'
 
 export interface CartItem {
   id: string
@@ -25,6 +26,7 @@ export interface MenuItem {
 
 export interface Order {
   id: string
+  externalId?: string // MoMo/External order ID for display
   status: 'preparing' | 'ready' | 'delivering' | 'delivered' | 'cancelled'
   items: CartItem[]
   total: number
@@ -32,7 +34,9 @@ export interface Order {
   deliveryFee: number
   paymentMethod: 'qr' | 'momo' | 'card'
   customerInfo: {
+    name?: string
     phone: string
+    email?: string
     location: string
     notes: string
   }
@@ -45,6 +49,7 @@ export interface Order {
     delivered: Date | null
   }
   estimatedDeliveryTime: number // minutes
+  robotPosition?: { lat: number; lng: number; timestamp?: string }
   robotId?: string
 }
 
@@ -85,7 +90,7 @@ interface KioskStore {
   clearCart: () => void
 
   // Order Actions
-  createOrder: (customerInfo: Order['customerInfo'], paymentMethod: Order['paymentMethod']) => Promise<string>
+  createOrder: (customerInfo: Order['customerInfo'], paymentMethod: Order['paymentMethod'], externalId?: string) => Promise<string>
   updateOrderStatus: (orderId: string, status: Order['status']) => void
   completeOrder: (orderId: string) => void
   cancelOrder: (orderId: string) => void
@@ -202,36 +207,68 @@ export const useKioskStore = create<KioskStore>()(
       },
 
       // Order Actions
-      createOrder: async (customerInfo: Order['customerInfo'], paymentMethod: Order['paymentMethod']) => {
+      createOrder: async (customerInfo: Order['customerInfo'], paymentMethod: Order['paymentMethod'], externalId?: string) => {
         const state = get()
-        const orderId = `ORDER-${Date.now()}`
         
-        const newOrder: Order = {
-          id: orderId,
-          status: 'preparing',
-          items: [...state.cartItems],
-          subtotal: state.cartSubtotal,
-          deliveryFee: state.deliveryFee,
-          total: state.cartTotal,
-          paymentMethod,
-          customerInfo,
-          timestamps: {
-            created: new Date(),
-            confirmed: null,
-            preparing: null,
-            ready: null,
-            delivering: null,
-            delivered: null
-          },
-          estimatedDeliveryTime: 15 + Math.floor(state.cartItems.length * 2) // Base 15 min + 2 min per item
+        try {
+          set({ isLoading: true, error: null })
+          
+          // Call real API to create order
+          const response = await kioskOrderService.createSimpleKioskOrder({
+            items: state.cartItems.map(item => ({
+              name: item.name,
+              quantity: item.quantity,
+              price: item.price
+            })),
+            customerName: customerInfo.name || 'Kiosk Customer',
+            customerPhone: customerInfo.phone,
+            deliveryFee: state.deliveryFee,
+            note: `${customerInfo.notes || ''}\nPayment: ${paymentMethod}`,
+            externalId // Truyền externalId để đồng bộ với MoMo
+          })
+          
+          if (!response.success) {
+            throw new Error(response.error || 'Failed to create order')
+          }
+          
+          // Map API response to local Order format
+          const newOrder: Order = {
+            id: response.orderId!,
+            externalId: externalId, // Set externalId for display (MoMo orderID)
+            status: 'preparing',
+            items: [...state.cartItems],
+            subtotal: state.cartSubtotal,
+            deliveryFee: state.deliveryFee,
+            total: state.cartTotal,
+            paymentMethod,
+            customerInfo,
+            timestamps: {
+              created: new Date(),
+              confirmed: null,
+              preparing: null,
+              ready: null,
+              delivering: null,
+              delivered: null
+            },
+            estimatedDeliveryTime: response.estimatedTime || 15,
+            robotId: response.robotId
+          }
+
+          set((state) => ({
+            currentOrder: newOrder,
+            orderHistory: [newOrder, ...state.orderHistory],
+            isLoading: false
+          }))
+
+          return response.orderId!
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Failed to create order'
+          set({ 
+            isLoading: false, 
+            error: errorMessage 
+          })
+          throw error
         }
-
-        set((state) => ({
-          currentOrder: newOrder,
-          orderHistory: [newOrder, ...state.orderHistory]
-        }))
-
-        return orderId
       },
 
       updateOrderStatus: (orderId: string, status: Order['status']) => {
