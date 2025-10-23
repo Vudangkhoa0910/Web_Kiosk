@@ -8,6 +8,7 @@ import RegisterPage from './pages/RegisterPage';
 import AuthLandingPage from './pages/AuthLandingPage';
 import TestOrderPage from './pages/TestOrderPage';
 import TokenUpdatePage from './pages/TokenUpdatePage';
+import PaymentResult from './pages/PaymentResult';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
@@ -95,6 +96,9 @@ const AppContent: React.FC = () => {
         
         {/* Token Management - without Layout */}
         <Route path="/token-update" element={<TokenUpdatePage />} />
+        
+        {/* Payment Callback - without Layout */}
+        <Route path="/payment/result" element={<PaymentResult />} />
         
         {/* Main App Routes - with Layout */}
         <Route path="/*" element={

@@ -1,1 +1,10 @@
+# API proxy rules (if using VITE_BACKEND_URL)
+/api/*  https://your-backend-url.com/api/:splat  200
+
+# Static assets - serve directly
+/assets/*  /assets/:splat  200
+/icons/*   /icons/:splat   200
+/images/*  /images/:splat  200
+
+# All other routes - SPA fallback (must be last)
 /*    /index.html   200
