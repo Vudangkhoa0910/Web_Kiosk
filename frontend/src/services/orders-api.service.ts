@@ -3,7 +3,8 @@
  * Gọi các endpoint của Orders từ Alpha Asimov Backend
  */
 
-import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
+import axios from 'axios';
+import type { AxiosInstance } from 'axios';
 import { authService } from './auth.service';
 import { apiConfig } from '../config/auth.config';
 
@@ -115,7 +116,7 @@ class OrdersApiService {
     this.axiosInstance.interceptors.request.use(
       async (config) => {
         const token = await authService.getAccessToken();
-        if (token) {
+        if (token && config.headers) {
           config.headers.Authorization = `Bearer ${token}`;
         }
         return config;

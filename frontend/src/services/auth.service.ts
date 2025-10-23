@@ -24,7 +24,7 @@ class AuthService {
     });
 
     // Listen cho silent renew error
-    this.userManager.events.addSilentRenewError((error) => {
+    this.userManager.events.addSilentRenewError((error: Error) => {
       console.error('Silent renew error:', error);
     });
 
