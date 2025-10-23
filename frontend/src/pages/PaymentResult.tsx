@@ -141,7 +141,26 @@ export default function PaymentResult() {
       } else {
         // Payment failed or cancelled
         console.log('❌ Payment failed or cancelled:', message);
-        // Redirect back to home
+        
+        // Try to restore cart items from extraData before redirecting
+        const extraDataParam = searchParams.get('extraData');
+        if (extraDataParam) {
+          try {
+            const decoded = JSON.parse(atob(extraDataParam));
+            if (decoded.items && Array.isArray(decoded.items)) {
+              console.log('📦 Restoring items to cart after cancellation...');
+              clearCart();
+              decoded.items.forEach((item: any) => {
+                addToCart(item, item.quantity || 1);
+              });
+              console.log('✅ Items restored - user can retry payment');
+            }
+          } catch (e) {
+            console.warn('⚠️ Could not restore items from extraData:', e);
+          }
+        }
+        
+        // Redirect back to home with error - this will trigger the retry dialog
         navigate('/?error=payment_failed');
       }
     };

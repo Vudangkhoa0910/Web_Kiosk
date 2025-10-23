@@ -561,6 +561,28 @@ const OrderFlowSection: React.FC = () => {
 
   const canContinueDetails = Boolean(customer.name.trim() && customer.phone.trim())
 
+  // Handle payment error/cancel from URL params (after MoMo redirect)
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    const errorType = urlParams.get('error');
+    
+    if (errorType === 'payment_failed') {
+      console.log('🔴 Detected payment failure/cancellation from URL');
+      
+      // Set userCancelledPayment to show retry dialog
+      setUserCancelledPayment(true);
+      
+      // Stay on payment step if we were there, otherwise go to payment step
+      if (step !== 'payment' && selectedItems.length > 0) {
+        setStep('payment');
+      }
+      
+      // Clear the error from URL to prevent re-triggering
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
+    }
+  }, [location.search, step, selectedItems.length]);
+
   // Auto-initialize MoMo payment when entering payment step
   useEffect(() => {
     // Don't auto-start if user just cancelled payment
