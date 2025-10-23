@@ -1253,16 +1253,16 @@ const OrderFlowSection: React.FC = () => {
                       return true;
                     })() && (
                       <div className="mb-6">
-                        <div className="rounded-2xl bg-gradient-to-br from-yellow-50 to-orange-50 border-2 border-orange-300 p-6 shadow-lg">
+                        <div className="rounded-2xl bg-gradient-to-br from-gray-50 to-slate-100 border-2 border-gray-300 p-6 shadow-xl">
                           {/* Icon and Message */}
                           <div className="text-center mb-5">
-                            <div className="w-16 h-16 bg-orange-100 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm">
-                              <svg className="w-8 h-8 text-orange-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div className="w-16 h-16 bg-gray-200 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-md border border-gray-300">
+                              <svg className="w-8 h-8 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                               </svg>
                             </div>
                             <h3 className="text-lg font-bold text-gray-900 mb-2">
-                              ⚠️ Thanh toán chưa hoàn tất
+                              Thanh toán chưa hoàn tất
                             </h3>
                             <p className="text-sm text-gray-600 leading-relaxed">
                               Bạn đã huỷ thanh toán. Vui lòng chọn một trong các tùy chọn bên dưới.
@@ -1277,7 +1277,7 @@ const OrderFlowSection: React.FC = () => {
                                 setError(null)
                                 // This will trigger the useEffect to auto-start MoMo
                               }}
-                              className="group relative rounded-xl bg-gradient-to-r from-gray-800 to-gray-900 text-white px-6 py-4 font-semibold hover:from-gray-900 hover:to-black transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
+                              className="group relative rounded-xl bg-gradient-to-r from-gray-800 to-gray-900 text-white px-6 py-4 font-semibold hover:from-black hover:to-gray-800 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 border border-gray-700"
                             >
                               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -1290,7 +1290,7 @@ const OrderFlowSection: React.FC = () => {
                                 setUserCancelledPayment(false)
                                 setError(null)
                               }}
-                              className="group relative rounded-xl bg-white border-2 border-gray-300 text-gray-700 px-6 py-4 font-semibold hover:bg-gray-50 hover:border-gray-400 transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
+                              className="group relative rounded-xl bg-white border-2 border-gray-400 text-gray-800 px-6 py-4 font-semibold hover:bg-gray-100 hover:border-gray-500 transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
                             >
                               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 17l-5-5m0 0l5-5m-5 5h12" />
